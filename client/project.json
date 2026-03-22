@@ -1,0 +1,16 @@
+{
+  "name": "client",
+  "$schema": "../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "sourceRoot": "client/src",
+  "// targets": "to see all targets run: nx show project client --web",
+  "targets": {
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "{workspaceRoot}",
+        "command": "eslint --config client/eslint.config.mjs --ext .ts,.tsx,.js,.jsx,.vue client"
+      }
+    }
+  }
+}

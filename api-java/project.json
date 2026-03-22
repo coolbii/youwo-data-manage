@@ -1,0 +1,60 @@
+{
+  "name": "api-java",
+  "$schema": "../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "api-java/src",
+  "projectType": "application",
+  "tags": ["scope:api", "stack:spring-boot"],
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "outputs": ["{projectRoot}/target"],
+      "options": {
+        "cwd": "{workspaceRoot}",
+        "command": "mvn -f api-java/pom.xml clean package -DskipTests"
+      }
+    },
+    "serve": {
+      "executor": "nx:run-commands",
+      "continuous": true,
+      "options": {
+        "cwd": "{workspaceRoot}",
+        "command": "mvn -f api-java/pom.xml spring-boot:run"
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "{workspaceRoot}",
+        "command": "mvn -f api-java/pom.xml test"
+      }
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "{workspaceRoot}",
+        "command": "mvn -f api-java/pom.xml checkstyle:check"
+      }
+    },
+    "db-migrate": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "{workspaceRoot}",
+        "command": "mvn -f api-java/pom.xml flyway:migrate"
+      }
+    },
+    "graphql-codegen": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "{workspaceRoot}",
+        "command": "mvn -f api-java/pom.xml -DskipTests -Dexec.mainClass=com.youwo.api.graphql.SchemaExportMain compile org.codehaus.mojo:exec-maven-plugin:3.5.0:java"
+      }
+    },
+    "graphql-drift-check": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "{workspaceRoot}",
+        "command": "nx run api-java:graphql-codegen && git diff --exit-code -- api-java/src/main/resources/graphql/schema.graphqls"
+      }
+    }
+  }
+}

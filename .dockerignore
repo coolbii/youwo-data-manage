@@ -1,0 +1,11 @@
+node_modules
+dist
+.nx
+.git
+.github
+coverage
+tmp
+out-tsc
+*.log
+.env
+api-java/target
