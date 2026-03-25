@@ -10,6 +10,7 @@
     "lint": "nx run-many -t lint --projects=client,api-java",
     "lint:client": "nx lint client",
     "lint:api-java": "nx lint api-java",
+    "test:api-java": "nx run api-java:test",
     "graphql:codegen": "nx run api-java:graphql-codegen",
     "graphql:check": "nx run api-java:graphql-drift-check",
     "db:migrate": "if [ -f .env ]; then set -a; . ./.env; set +a; fi; nx run api-java:db-migrate",

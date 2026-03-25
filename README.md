@@ -93,7 +93,27 @@ The Java app is configured in `api-java/project.json` using Nx `run-commands`:
 npm run build
 ```
 
-## 6) Docker and Nginx deployment
+## 6) GraphQL code-first schema and drift guard
+
+GraphQL runtime is generated from resolver code (code-first), not hand-authored SDL.
+
+Generate committed schema snapshot:
+
+```bash
+npm run graphql:codegen
+```
+
+Check schema drift (fails when generated schema differs from committed snapshot):
+
+```bash
+npm run graphql:check
+```
+
+Snapshot path:
+
+- `api-java/src/main/resources/graphql/schema.graphqls`
+
+## 7) Docker and Nginx deployment
 
 Production compose:
 
