@@ -22,7 +22,7 @@ npm run db:up
 Set datasource in `.env`:
 
 ```env
-SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/youwo_homework
+SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5433/youwo_homework
 SPRING_DATASOURCE_USERNAME=postgres
 SPRING_DATASOURCE_PASSWORD=postgres
 SERVER_PORT=3000
@@ -59,17 +59,65 @@ npm run db:logs
 npm run db:down
 ```
 
+Batch import `people` from CSV:
+
+```bash
+# 1) ensure DB + schema are ready
+npm run db:up
+npm run db:migrate
+
+# 2) copy and edit template
+cp db/people_import_template.csv /tmp/people_import.csv
+
+# 3) run import
+npm run db:import -- --table=people --csv=/tmp/people_import.csv
+```
+
+Import files:
+
+- `db/import_people_batch.sql` (staging + validation + dedupe + insert)
+- `db/people_import_template.csv` (header and example rows)
+- `scripts/db-import.sh` (Docker Postgres wrapper)
+
+CSV format must be exactly:
+
+```csv
+name,position_title,location,birth_date
+```
+
+`birth_date` must use `YYYY-MM-DD`.
+
+Requirements:
+
+- PostgreSQL 16+ (`db/import_people_batch.sql` uses `pg_input_is_valid` for safe date validation).
+
+Corner cases handled by importer:
+
+- Trims leading/trailing whitespace.
+- Removes UTF-8 BOM from first column.
+- Rejects blank `name`, `position_title`, `location`, `birth_date`.
+- Rejects invalid/future `birth_date`.
+- Rejects over-length strings (`name` > 255, `position_title`/`location` > 120).
+- Skips duplicates in file and existing DB rows using
+  case-insensitive `(name, position_title, location, birth_date)`.
+
+Large data note:
+
+- Import currently runs in a single transaction. For very large files (for example millions of rows), split into chunks and run chunk-by-chunk to control WAL/temp usage.
+- Example: `split -l 100000 your.csv /tmp/people_chunk_` (remember each chunk needs the CSV header).
+
 Local URLs:
 
 - Client: `http://localhost:4200`
 - API health: `http://localhost:3000/api/health`
 - GraphQL: `http://localhost:3000/api/graphql`
+- GraphQL Playground (Apollo Sandbox): `http://localhost:3000/api/graphql/playground`
 
 ## 3) Database migration (Flyway)
 
 Migrations are stored in `api-java/src/main/resources/db/migration`.
 
-- On app startup, Flyway runs automatically.
+- Flyway auto-run is disabled by default in this repo (`spring.flyway.enabled=false`).
 - Manual migrate command:
 
 ```bash
@@ -77,6 +125,20 @@ npm run db:migrate
 ```
 
 `db:migrate` also loads root `.env` automatically before running Flyway.
+
+JPA/Flyway workflow in this repo:
+
+- `spring.jpa.hibernate.ddl-auto=validate` (JPA validates schema only, does not mutate schema)
+- Flyway versioned SQL is the source of truth for schema changes
+- Optional DDL draft from JPA metadata (for authoring help, not direct apply):
+
+```bash
+npm run db:ddl-draft
+```
+
+Generated draft path:
+
+- `api-java/target/generated-ddl/jpa-create.sql`
 
 ## 4) Nx targets for Java API
 

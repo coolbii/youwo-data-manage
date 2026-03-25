@@ -42,6 +42,20 @@
         "command": "mvn -f api-java/pom.xml flyway:migrate"
       }
     },
+    "db-import": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "{workspaceRoot}",
+        "command": "scripts/db-import.sh --table={args.table} --csv={args.csv}"
+      }
+    },
+    "db-ddl-draft": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "{workspaceRoot}",
+        "command": "mkdir -p api-java/target/generated-ddl && rm -f api-java/target/generated-ddl/jpa-create.sql && mvn -f api-java/pom.xml -Dspring-boot.run.profiles=ddl-draft -Dspring-boot.run.jvmArguments='-Dspring.main.web-application-type=none' spring-boot:run && if command -v sqlfluff >/dev/null 2>&1; then sqlfluff fix --dialect postgres api-java/target/generated-ddl/jpa-create.sql || true; else echo '[db-ddl-draft] sqlfluff not found; skip formatting'; fi"
+      }
+    },
     "graphql-codegen": {
       "executor": "nx:run-commands",
       "options": {

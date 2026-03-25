@@ -3,7 +3,7 @@ server:
 
 spring:
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/youwo_homework}
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5433/youwo_homework}
     username: ${SPRING_DATASOURCE_USERNAME:postgres}
     password: ${SPRING_DATASOURCE_PASSWORD:postgres}
   jpa:
@@ -11,8 +11,13 @@ spring:
       ddl-auto: validate
     open-in-view: false
   flyway:
-    enabled: true
+    enabled: false
     locations: classpath:db/migration
+  graphql:
+    graphiql:
+      enabled: true
+      path: /graphiql
+    path: ${GRAPHQL_PATH:/api/graphql}
 
 app:
   graphql:

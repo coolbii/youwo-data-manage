@@ -14,9 +14,11 @@
     "graphql:codegen": "nx run api-java:graphql-codegen",
     "graphql:check": "nx run api-java:graphql-drift-check",
     "db:migrate": "if [ -f .env ]; then set -a; . ./.env; set +a; fi; nx run api-java:db-migrate",
+    "db:ddl-draft": "if [ -f .env ]; then set -a; . ./.env; set +a; fi; nx run api-java:db-ddl-draft",
     "db:up": "docker compose -f docker-compose.dev.yml up -d postgres",
     "db:down": "docker compose -f docker-compose.dev.yml down",
     "db:logs": "docker compose -f docker-compose.dev.yml logs -f postgres",
+    "db:import": "if [ -f .env ]; then set -a; . ./.env; set +a; fi; nx run api-java:db-import --",
     "prepare": "husky"
   },
   "private": true,
