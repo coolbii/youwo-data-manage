@@ -1679,7 +1679,7 @@
                   "id": "FTHWr",
                   "name": "footerText",
                   "fill": "#9CA3AF",
-                  "content": "Showing 1–500 of 10,482,310 results",
+                  "content": "500 of 10,482,310 loaded",
                   "fontFamily": "Inter",
                   "fontSize": 13,
                   "fontWeight": "normal"
@@ -1688,11 +1688,11 @@
                   "type": "text",
                   "id": "ifvLm",
                   "name": "footerLoad",
-                  "fill": "#6366F1",
-                  "content": "Load more ↓",
+                  "fill": "#9CA3AF",
+                  "content": "Scroll for more",
                   "fontFamily": "Inter",
                   "fontSize": 13,
-                  "fontWeight": "500"
+                  "fontWeight": "normal"
                 }
               ]
             }
@@ -2844,7 +2844,7 @@
                   "id": "aEa9q",
                   "name": "tFooterT",
                   "fill": "#9CA3AF",
-                  "content": "Showing 1–500 of 10,482,310",
+                  "content": "500 of 10,482,310 loaded",
                   "fontFamily": "Inter",
                   "fontSize": 12,
                   "fontWeight": "normal"
@@ -2853,8 +2853,8 @@
                   "type": "text",
                   "id": "PnlkR",
                   "name": "tFooterL",
-                  "fill": "#6366F1",
-                  "content": "Load more ↓",
+                  "fill": "#9CA3AF",
+                  "content": "Scroll for more",
                   "fontFamily": "Inter",
                   "fontSize": 12,
                   "fontWeight": "500"
@@ -4696,7 +4696,7 @@
           "y": 523,
           "name": "mFoot",
           "fill": "#9CA3AF",
-          "content": "Showing 1–3 of 10,482,310",
+          "content": "3 of 10,482,310 loaded",
           "fontFamily": "Inter",
           "fontSize": 12,
           "fontWeight": "normal"
@@ -4707,11 +4707,11 @@
           "x": 280,
           "y": 523,
           "name": "mLoad",
-          "fill": "#6366F1",
-          "content": "Load more ↓",
+          "fill": "#9CA3AF",
+          "content": "Scroll for more",
           "fontFamily": "Inter",
           "fontSize": 12,
-          "fontWeight": "500"
+          "fontWeight": "normal"
         },
         {
           "type": "frame",
@@ -7513,32 +7513,42 @@
                 "thickness": 2,
                 "fill": "#6366F1"
               },
-              "gap": 10,
               "padding": [
                 0,
                 14
               ],
+              "justifyContent": "space_between",
               "alignItems": "center",
               "children": [
                 {
-                  "type": "icon_font",
-                  "id": "VzEjC",
-                  "name": "searchIcon",
-                  "width": 18,
-                  "height": 18,
-                  "iconFontName": "search",
-                  "iconFontFamily": "lucide",
-                  "fill": "#9CA3AF"
-                },
-                {
-                  "type": "text",
-                  "id": "amzfJ",
-                  "name": "searchText",
-                  "fill": "#111827",
-                  "content": "John",
-                  "fontFamily": "Inter",
-                  "fontSize": 14,
-                  "fontWeight": "normal"
+                  "type": "frame",
+                  "id": "QqT1m",
+                  "name": "dSearchLeft",
+                  "width": "fill_container",
+                  "gap": 10,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "VzEjC",
+                      "name": "searchIcon",
+                      "width": 18,
+                      "height": 18,
+                      "iconFontName": "search",
+                      "iconFontFamily": "lucide",
+                      "fill": "#9CA3AF"
+                    },
+                    {
+                      "type": "text",
+                      "id": "amzfJ",
+                      "name": "searchText",
+                      "fill": "#111827",
+                      "content": "John",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
                 },
                 {
                   "type": "icon_font",
@@ -8422,7 +8432,7 @@
                   "id": "uJ8Vd",
                   "name": "footerText",
                   "fill": "#9CA3AF",
-                  "content": "Showing 1–2 of 2 results matching 'John'",
+                  "content": "2 of 2 loaded · matching 'John'",
                   "fontFamily": "Inter",
                   "fontSize": 13,
                   "fontWeight": "normal"
@@ -8696,32 +8706,42 @@
                 "thickness": 2,
                 "fill": "#6366F1"
               },
-              "gap": 10,
               "padding": [
                 0,
                 14
               ],
+              "justifyContent": "space_between",
               "alignItems": "center",
               "children": [
                 {
-                  "type": "icon_font",
-                  "id": "QWLL0",
-                  "name": "searchIcon",
-                  "width": 18,
-                  "height": 18,
-                  "iconFontName": "search",
-                  "iconFontFamily": "lucide",
-                  "fill": "#9CA3AF"
-                },
-                {
-                  "type": "text",
-                  "id": "clepl",
-                  "name": "searchText",
-                  "fill": "#111827",
-                  "content": "xyzabc",
-                  "fontFamily": "Inter",
-                  "fontSize": 14,
-                  "fontWeight": "normal"
+                  "type": "frame",
+                  "id": "D5kNu",
+                  "name": "dSearchLeft",
+                  "width": "fill_container",
+                  "gap": 10,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "QWLL0",
+                      "name": "searchIcon",
+                      "width": 18,
+                      "height": 18,
+                      "iconFontName": "search",
+                      "iconFontFamily": "lucide",
+                      "fill": "#9CA3AF"
+                    },
+                    {
+                      "type": "text",
+                      "id": "clepl",
+                      "name": "searchText",
+                      "fill": "#111827",
+                      "content": "xyzabc",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
                 },
                 {
                   "type": "icon_font",
@@ -10804,7 +10824,7 @@
                   "id": "yhaWI",
                   "name": "footerText",
                   "fill": "#9CA3AF",
-                  "content": "Showing 1–500 of 10,482,310 results",
+                  "content": "500 of 10,482,310 loaded",
                   "fontFamily": "Inter",
                   "fontSize": 13,
                   "fontWeight": "normal"
@@ -10813,11 +10833,11 @@
                   "type": "text",
                   "id": "3Cpo4",
                   "name": "footerLoad",
-                  "fill": "#6366F1",
-                  "content": "Load more ↓",
+                  "fill": "#9CA3AF",
+                  "content": "Scroll for more",
                   "fontFamily": "Inter",
                   "fontSize": 13,
-                  "fontWeight": "500"
+                  "fontWeight": "normal"
                 }
               ]
             }
@@ -11751,7 +11771,7 @@
       "id": "U9Jtz",
       "x": 1520,
       "y": 5340,
-      "name": "2.4 Load More Loading / 1440",
+      "name": "2.4 Infinite Scroll Loading / 1440",
       "clip": true,
       "width": 1440,
       "height": 1024,
@@ -11778,7 +11798,7 @@
               "id": "1gdDE",
               "name": "purposeText",
               "fill": "#FFFFFF",
-              "content": "Desktop 1440 — Load more loading state",
+              "content": "Desktop 1440 — Infinite scroll loading state",
               "fontFamily": "Inter",
               "fontSize": 14,
               "fontWeight": "600"
@@ -14875,32 +14895,42 @@
             "thickness": 2,
             "fill": "#6366F1"
           },
-          "gap": 8,
           "padding": [
             0,
             10
           ],
+          "justifyContent": "space_between",
           "alignItems": "center",
           "children": [
             {
-              "type": "icon_font",
-              "id": "wBlL7",
-              "name": "mSearchI",
-              "width": 16,
-              "height": 16,
-              "iconFontName": "search",
-              "iconFontFamily": "lucide",
-              "fill": "#9CA3AF"
-            },
-            {
-              "type": "text",
-              "id": "RsuY4",
-              "name": "mSearchT",
-              "fill": "#111827",
-              "content": "John",
-              "fontFamily": "Inter",
-              "fontSize": 13,
-              "fontWeight": "normal"
+              "type": "frame",
+              "id": "yQx2N",
+              "name": "mSearchLeft",
+              "width": "fill_container",
+              "gap": 8,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon_font",
+                  "id": "wBlL7",
+                  "name": "mSearchI",
+                  "width": 16,
+                  "height": 16,
+                  "iconFontName": "search",
+                  "iconFontFamily": "lucide",
+                  "fill": "#9CA3AF"
+                },
+                {
+                  "type": "text",
+                  "id": "RsuY4",
+                  "name": "mSearchT",
+                  "fill": "#111827",
+                  "content": "John",
+                  "fontFamily": "Inter",
+                  "fontSize": 13,
+                  "fontWeight": "normal"
+                }
+              ]
             },
             {
               "type": "icon_font",
@@ -15405,7 +15435,7 @@
           "y": 453,
           "name": "mFoot",
           "fill": "#9CA3AF",
-          "content": "Showing 1–2 of 2 results",
+          "content": "2 of 2 loaded",
           "fontFamily": "Inter",
           "fontSize": 12,
           "fontWeight": "normal"
@@ -15417,8 +15447,8 @@
           "y": 453,
           "name": "mLoad",
           "enabled": false,
-          "fill": "#6366F1",
-          "content": "Load more ↓",
+          "fill": "#9CA3AF",
+          "content": "All loaded",
           "fontFamily": "Inter",
           "fontSize": 12,
           "fontWeight": "500"
@@ -15645,32 +15675,42 @@
             "thickness": 2,
             "fill": "#6366F1"
           },
-          "gap": 8,
           "padding": [
             0,
             10
           ],
+          "justifyContent": "space_between",
           "alignItems": "center",
           "children": [
             {
-              "type": "icon_font",
-              "id": "pVa9f",
-              "name": "mSearchI",
-              "width": 16,
-              "height": 16,
-              "iconFontName": "search",
-              "iconFontFamily": "lucide",
-              "fill": "#9CA3AF"
-            },
-            {
-              "type": "text",
-              "id": "wlJID",
-              "name": "mSearchT",
-              "fill": "#111827",
-              "content": "xyzabc",
-              "fontFamily": "Inter",
-              "fontSize": 13,
-              "fontWeight": "normal"
+              "type": "frame",
+              "id": "mQ4Lp",
+              "name": "mSearchLeft",
+              "width": "fill_container",
+              "gap": 8,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon_font",
+                  "id": "pVa9f",
+                  "name": "mSearchI",
+                  "width": 16,
+                  "height": 16,
+                  "iconFontName": "search",
+                  "iconFontFamily": "lucide",
+                  "fill": "#9CA3AF"
+                },
+                {
+                  "type": "text",
+                  "id": "wlJID",
+                  "name": "mSearchT",
+                  "fill": "#111827",
+                  "content": "xyzabc",
+                  "fontFamily": "Inter",
+                  "fontSize": 13,
+                  "fontWeight": "normal"
+                }
+              ]
             },
             {
               "type": "icon_font",
@@ -15798,8 +15838,7 @@
           "y": 516,
           "name": "mLoad",
           "enabled": false,
-          "fill": "#6366F1",
-          "content": "Load more ↓",
+          "fill": "#9CA3AF",
           "fontFamily": "Inter",
           "fontSize": 12,
           "fontWeight": "500"
@@ -16751,7 +16790,7 @@
           "y": 523,
           "name": "mFoot",
           "fill": "#9CA3AF",
-          "content": "Showing 1–500 of 10,482,310",
+          "content": "500 of 10,482,310 loaded",
           "fontFamily": "Inter",
           "fontSize": 12,
           "fontWeight": "normal"
@@ -16762,8 +16801,8 @@
           "x": 280,
           "y": 523,
           "name": "mLoad",
-          "fill": "#6366F1",
-          "content": "Load more ↓",
+          "fill": "#9CA3AF",
+          "content": "Scroll for more",
           "fontFamily": "Inter",
           "fontSize": 12,
           "fontWeight": "500"
@@ -17643,7 +17682,7 @@
       "id": "OizRb",
       "x": 1840,
       "y": 6740,
-      "name": "2.4 Load More Loading / 375",
+      "name": "2.4 Infinite Scroll Loading / 375",
       "clip": true,
       "width": 375,
       "height": 812,
@@ -17670,7 +17709,7 @@
               "id": "CpuTm",
               "name": "mPurposeT",
               "fill": "#FFFFFF",
-              "content": "Mobile 375 — Load more loading",
+              "content": "Mobile 375 — Infinite scroll loading",
               "fontFamily": "Inter",
               "fontSize": 12,
               "fontWeight": "600"
@@ -18666,7 +18705,7 @@
       "name": "Spec: List Loading Strategy",
       "width": 280,
       "height": 210,
-      "content": "List Loading Strategy\n\n• NOT infinite scroll — uses cursor-based load-more pagination\n• Footer shows 'Showing N–M of total' + 'Load more ↓' button\n• Impl: cursor-based fetch + DOM virtualization / windowing\n• Keeps continuous browse feel with bounded memory footprint"
+      "content": "List Loading Strategy\n\n• Infinite scroll — auto-fetch next page on scroll near bottom\n• Footer shows 'N of total loaded' + 'Scroll for more' hint\n• Impl: cursor-based fetch + IntersectionObserver trigger + DOM virtualization / windowing\n• Virtualization keeps DOM node count bounded regardless of data loaded"
     },
     {
       "type": "frame",
@@ -22382,32 +22421,42 @@
                 "thickness": 2,
                 "fill": "#6366F1"
               },
-              "gap": 10,
               "padding": [
                 0,
                 14
               ],
+              "justifyContent": "space_between",
               "alignItems": "center",
               "children": [
                 {
-                  "type": "icon_font",
-                  "id": "xu2U2",
-                  "name": "searchIcon",
-                  "width": 18,
-                  "height": 18,
-                  "iconFontName": "search",
-                  "iconFontFamily": "lucide",
-                  "fill": "#9CA3AF"
-                },
-                {
-                  "type": "text",
-                  "id": "n081q",
-                  "name": "searchText",
-                  "fill": "#111827",
-                  "content": "John",
-                  "fontFamily": "Inter",
-                  "fontSize": 14,
-                  "fontWeight": "normal"
+                  "type": "frame",
+                  "id": "rN4pQ",
+                  "name": "dSearchLeft",
+                  "width": "fill_container",
+                  "gap": 10,
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "xu2U2",
+                      "name": "searchIcon",
+                      "width": 18,
+                      "height": 18,
+                      "iconFontName": "search",
+                      "iconFontFamily": "lucide",
+                      "fill": "#9CA3AF"
+                    },
+                    {
+                      "type": "text",
+                      "id": "n081q",
+                      "name": "searchText",
+                      "fill": "#111827",
+                      "content": "John",
+                      "fontFamily": "Inter",
+                      "fontSize": 14,
+                      "fontWeight": "normal"
+                    }
+                  ]
                 },
                 {
                   "type": "icon_font",
@@ -23291,7 +23340,7 @@
                   "id": "SWQvA",
                   "name": "footerText",
                   "fill": "#9CA3AF",
-                  "content": "Showing 1–2 of 2 results matching 'John'",
+                  "content": "2 of 2 loaded · matching 'John'",
                   "fontFamily": "Inter",
                   "fontSize": 13,
                   "fontWeight": "normal"
@@ -23646,32 +23695,42 @@
             "thickness": 2,
             "fill": "#6366F1"
           },
-          "gap": 8,
           "padding": [
             0,
             10
           ],
+          "justifyContent": "space_between",
           "alignItems": "center",
           "children": [
             {
-              "type": "icon_font",
-              "id": "ElwR0",
-              "name": "mSearchI",
-              "width": 16,
-              "height": 16,
-              "iconFontName": "search",
-              "iconFontFamily": "lucide",
-              "fill": "#9CA3AF"
-            },
-            {
-              "type": "text",
-              "id": "ekznq",
-              "name": "mSearchT",
-              "fill": "#111827",
-              "content": "John",
-              "fontFamily": "Inter",
-              "fontSize": 13,
-              "fontWeight": "normal"
+              "type": "frame",
+              "id": "bR8Fd",
+              "name": "mSearchLeft",
+              "width": "fill_container",
+              "gap": 8,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon_font",
+                  "id": "ElwR0",
+                  "name": "mSearchI",
+                  "width": 16,
+                  "height": 16,
+                  "iconFontName": "search",
+                  "iconFontFamily": "lucide",
+                  "fill": "#9CA3AF"
+                },
+                {
+                  "type": "text",
+                  "id": "ekznq",
+                  "name": "mSearchT",
+                  "fill": "#111827",
+                  "content": "John",
+                  "fontFamily": "Inter",
+                  "fontSize": 13,
+                  "fontWeight": "normal"
+                }
+              ]
             },
             {
               "type": "icon_font",
@@ -24176,7 +24235,7 @@
           "y": 453,
           "name": "mFoot",
           "fill": "#9CA3AF",
-          "content": "Showing 1–2 of 2 results",
+          "content": "2 of 2 loaded",
           "fontFamily": "Inter",
           "fontSize": 12,
           "fontWeight": "normal"
@@ -24188,8 +24247,8 @@
           "y": 453,
           "name": "mLoad",
           "enabled": false,
-          "fill": "#6366F1",
-          "content": "Load more ↓",
+          "fill": "#9CA3AF",
+          "content": "All loaded",
           "fontFamily": "Inter",
           "fontSize": 12,
           "fontWeight": "500"
