@@ -1,7 +1,6 @@
 # GENERATED FILE. DO NOT EDIT MANUALLY.
 schema {
   query: Query
-  mutation: Mutation
 }
 
 "Marks the field, argument, input field or enum value as deprecated"
@@ -31,24 +30,32 @@ directive @specifiedBy(
     url: String!
   ) on SCALAR
 
-type HomeworkPayload {
-  completed: Boolean
-  createdAt: String
-  description: String
-  id: Int
-  title: String
-  updatedAt: String
+type PeopleConnectionPayload {
+  nodes: [PersonPayload]
+  pageInfo: PeoplePageInfoPayload
 }
 
-"Mutation root"
-type Mutation {
-  createHomework(description: String, title: String): HomeworkPayload
-  deleteHomework(id: Int): Boolean
-  updateHomework(completed: Boolean, description: String, id: Int, title: String): HomeworkPayload
+type PeoplePageInfoPayload {
+  endCursor: String
+  hasNextPage: Boolean!
+}
+
+type PersonPayload {
+  age: Int
+  birthdate: String
+  createdAt: String
+  id: UUID
+  location: String
+  name: String
+  position: String
+  updatedAt: String
 }
 
 "Query root"
 type Query {
-  homework(id: Int): HomeworkPayload
-  homeworkList(limit: Int, offset: Int): [HomeworkPayload]
+  peopleList(after: String, first: Int): PeopleConnectionPayload
+  person(id: UUID): PersonPayload
 }
+
+"UUID String"
+scalar UUID

@@ -16,7 +16,7 @@ public class ApiController {
   @GetMapping
   public Map<String, String> info() {
     return Map.of(
-        "message", "Youwo Homework API is running.",
+        "message", "Youwo Data Manage API is running.",
         "graphqlEndpoint", "/api/graphql");
   }
 }

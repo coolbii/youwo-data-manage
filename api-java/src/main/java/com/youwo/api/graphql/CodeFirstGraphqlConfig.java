@@ -1,6 +1,7 @@
 package com.youwo.api.graphql;
 
-import com.youwo.api.homework.HomeworkGraphqlController;
+import com.youwo.api.people.PeopleGraphqlController;
+import com.youwo.api.people.PinRulesGraphqlController;
 import graphql.GraphQL;
 import graphql.schema.GraphQLSchema;
 import io.leangen.graphql.GraphQLSchemaGenerator;
@@ -10,9 +11,12 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class CodeFirstGraphqlConfig {
   @Bean
-  public GraphQLSchema graphQLSchema(HomeworkGraphqlController homeworkGraphqlController) {
+  public GraphQLSchema graphQLSchema(
+      PeopleGraphqlController peopleGraphqlController,
+      PinRulesGraphqlController pinRulesGraphqlController) {
     return new GraphQLSchemaGenerator()
-        .withOperationsFromSingleton(homeworkGraphqlController)
+        .withOperationsFromSingleton(peopleGraphqlController, PeopleGraphqlController.class)
+        .withOperationsFromSingleton(pinRulesGraphqlController, PinRulesGraphqlController.class)
         .generate();
   }
 
