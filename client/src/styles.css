@@ -1,42 +1,229 @@
+@import "tailwindcss";
+
+:root {
+  --font-sans: "Inter", "Noto Sans TC", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "JetBrains Mono", "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+
+  --color-bg: #f9fafb;
+  --color-surface: #ffffff;
+  --color-surface-soft: #f3f4f6;
+
+  --color-text: #111827;
+  --color-text-secondary: #374151;
+  --color-muted: #6b7280;
+  --color-placeholder: #9ca3af;
+
+  --color-border: #e5e7eb;
+  --color-border-strong: #d1d5db;
+
+  --color-accent: #6366f1;
+  --color-accent-strong: #4338ca;
+  --color-accent-soft: #e0e7ff;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+
+  --shadow-sm: 0 1px 2px rgb(15 23 42 / 8%);
+  --shadow-md: 0 10px 30px rgb(15 23 42 / 8%);
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+
+  --bp-375: 375px;
+  --bp-600: 600px;
+  --bp-1024: 1024px;
+  --bp-1440: 1440px;
+
+  --gutter-mobile: 16px;
+  --gutter-tablet: 24px;
+  --gutter-laptop: 32px;
+  --gutter-desktop: 48px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
 html {
-    -webkit-text-size-adjust: 100%;
-    font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
-    'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif,
-    'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
-    'Noto Color Emoji';
-    line-height: 1.5;
-    tab-size: 4;
-    scroll-behavior: smooth;
+  text-size-adjust: 100%;
 }
+
 body {
-    font-family: inherit;
-    line-height: inherit;
-    margin: 0;
+  margin: 0;
+  font-family: var(--font-sans);
+  color: var(--color-text);
+  background: var(--color-bg);
+  line-height: 1.5;
 }
+
 h1,
 h2,
+h3,
+h4,
+h5,
+h6 {
+  margin: 0;
+  color: var(--color-text);
+  line-height: 1.2;
+}
+
 p,
+ul,
+ol,
 pre {
-    margin: 0;
+  margin: 0;
 }
-*,
-::before,
-::after {
-    box-sizing: border-box;
-    border-width: 0;
-    border-style: solid;
-    border-color: currentColor;
-}
-h1,
-h2 {
-    font-size: inherit;
-    font-weight: inherit;
-}
+
 a {
-    color: inherit;
-    text-decoration: inherit;
+  color: inherit;
+  text-decoration: none;
 }
+
+code,
 pre {
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    'Liberation Mono', 'Courier New', monospace;
+  font-family: var(--font-mono);
+}
+
+@layer utilities {
+  .layout-shell {
+    width: 100%;
+    min-height: 100%;
+    padding-inline: var(--gutter-mobile);
+  }
+
+  .layout-wrapper {
+    width: 100%;
+    margin-inline: auto;
+  }
+
+  .layout-wrapper--responsive {
+    max-width: var(--bp-1440);
+  }
+
+  .layout-wrapper--375 {
+    max-width: var(--bp-375);
+  }
+
+  .layout-wrapper--600 {
+    max-width: var(--bp-600);
+  }
+
+  .layout-wrapper--1024 {
+    max-width: var(--bp-1024);
+  }
+
+  .layout-wrapper--1440 {
+    max-width: var(--bp-1440);
+  }
+
+  .surface-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .display-title {
+    font-size: clamp(2rem, 2.5vw, 2.75rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+
+  .section-title {
+    font-size: clamp(1.35rem, 1.9vw, 1.8rem);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  .body-lg {
+    font-size: 1rem;
+    line-height: 1.7;
+  }
+
+  .body-sm {
+    font-size: 0.875rem;
+    line-height: 1.6;
+  }
+
+  .text-muted {
+    color: var(--color-muted);
+  }
+
+  .stack-2 > * + * {
+    margin-top: var(--space-2);
+  }
+
+  .stack-3 > * + * {
+    margin-top: var(--space-3);
+  }
+
+  .stack-4 > * + * {
+    margin-top: var(--space-4);
+  }
+
+  .stack-6 > * + * {
+    margin-top: var(--space-6);
+  }
+
+  .gap-2u {
+    gap: var(--space-2);
+  }
+
+  .gap-3u {
+    gap: var(--space-3);
+  }
+
+  .gap-4u {
+    gap: var(--space-4);
+  }
+
+  .px-4u {
+    padding-inline: var(--space-4);
+  }
+
+  .px-6u {
+    padding-inline: var(--space-6);
+  }
+
+  .py-4u {
+    padding-block: var(--space-4);
+  }
+
+  .py-6u {
+    padding-block: var(--space-6);
+  }
+}
+
+@media (min-width: 600px) {
+  .layout-shell {
+    padding-inline: var(--gutter-tablet);
+  }
+}
+
+@media (min-width: 1024px) {
+  .layout-shell {
+    padding-inline: var(--gutter-laptop);
+  }
+}
+
+@media (min-width: 1440px) {
+  .layout-shell {
+    padding-inline: var(--gutter-desktop);
+  }
 }

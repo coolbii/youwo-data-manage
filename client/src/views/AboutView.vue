@@ -1,16 +1,9 @@
 <template>
-  <div class="about">
-    <h1>This is an about page</h1>
-  </div>
+  <section class="surface-card page-skeleton" />
 </template>
 
-<style>
-@media (min-width: 768px) {
-  .about {
-    max-width: 768px;
-    margin-left: auto;
-    margin-right: auto;
-    padding: 0 1rem;
-  }
+<style scoped>
+.page-skeleton {
+  min-height: calc(100vh - 2 * var(--space-6));
 }
 </style>
