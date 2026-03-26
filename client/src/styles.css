@@ -46,6 +46,30 @@
   --gutter-tablet: 24px;
   --gutter-laptop: 32px;
   --gutter-desktop: 48px;
+
+  --control-h-sm: 32px;
+  --control-h-md: 44px;
+  --control-h-lg: 48px;
+  --control-px: 14px;
+  --control-px-mobile: 10px;
+  --control-gap: 10px;
+  --control-gap-mobile: 8px;
+  --control-icon: 18px;
+  --control-icon-mobile: 16px;
+
+  --font-size-sm: 0.8125rem;
+  --font-size-md: 0.875rem;
+  --font-size-lg: 0.9375rem;
+
+  --duration-fast: 140ms;
+
+  --color-error: #ef4444;
+  --color-error-ring: rgb(239 68 68 / 12%);
+  --color-danger: #dc2626;
+  --color-danger-strong: #991b1b;
+  --color-danger-soft: #fef2f2;
+  --color-danger-border: #fecaca;
+  --color-danger-hover: #fee2e2;
 }
 
 *,

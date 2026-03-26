@@ -1,16 +1,16 @@
 <script setup lang="ts">
 import { RouterView } from 'vue-router';
-import UiPageContainer from '../components/layout/UiPageContainer.vue';
+import PageContainer from '../components/layout/PageContainer.vue';
 </script>
 
 <template>
-  <UiPageContainer mode="responsive">
+  <PageContainer mode="responsive">
     <div class="app-root">
       <main>
         <RouterView />
       </main>
     </div>
-  </UiPageContainer>
+  </PageContainer>
 </template>
 
 <style scoped>
