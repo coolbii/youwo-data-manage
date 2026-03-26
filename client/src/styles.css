@@ -70,6 +70,23 @@
   --color-danger-soft: #fef2f2;
   --color-danger-border: #fecaca;
   --color-danger-hover: #fee2e2;
+
+  --color-success: #22c55e;
+  --color-success-soft: #f0fdf4;
+  --color-success-border: #bbf7d0;
+  --color-warning: #f59e0b;
+  --color-warning-soft: #fffbeb;
+  --color-warning-border: #fde68a;
+  --color-info: #6366f1;
+  --color-info-soft: #e0e7ff;
+  --color-info-border: #c7d2fe;
+
+  --color-backdrop: rgb(0 0 0 / 40%);
+  --shadow-lg: 0 16px 48px rgb(15 23 42 / 12%);
+
+  --z-dropdown: 100;
+  --z-modal: 200;
+  --z-toast: 300;
 }
 
 *,
