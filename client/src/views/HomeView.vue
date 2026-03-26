@@ -1,17 +1,34 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import Button from '../components/form/Button.vue';
 import IconButton from '../components/form/IconButton.vue';
 import InlineError from '../components/form/InlineError.vue';
 import PasswordField from '../components/form/PasswordField.vue';
 import Select from '../components/form/Select.vue';
 import TextField from '../components/form/TextField.vue';
+import CardRow from '../components/list/CardRow.vue';
+import DataTable, { type SortState, type TableColumn } from '../components/list/DataTable.vue';
+import InfiniteFooter from '../components/list/InfiniteFooter.vue';
+import StatusBadge from '../components/list/StatusBadge.vue';
+import Toolbar from '../components/list/Toolbar.vue';
 import LoadingIndicator from '../components/feedback/LoadingIndicator.vue';
 import BottomSheet from '../components/overlay/BottomSheet.vue';
 import Dropdown from '../components/overlay/Dropdown.vue';
 import Menu, { type MenuItem } from '../components/overlay/Menu.vue';
 import Modal from '../components/overlay/Modal.vue';
 import { type ToastVariant, useToast } from '../composables/useToast';
+
+type PersonStatus = 'active' | 'paused' | 'blocked';
+type DemoPerson = {
+  id: string;
+  name: string;
+  role: string;
+  location: string;
+  status: PersonStatus;
+  score: number;
+};
+
+type FooterDemoState = 'idle' | 'loading' | 'end' | 'error';
 
 const name = ref('John Carter');
 const query = ref('Taipei');
@@ -34,6 +51,85 @@ const menuItems: MenuItem[] = [
   { key: 'pin', label: 'Pin to top' },
   { key: 'delete', label: 'Delete person', danger: true },
 ];
+
+const peopleRows = ref<DemoPerson[]>([
+  {
+    id: 'u-101',
+    name: 'Avery Wong',
+    role: 'Backend Engineer',
+    location: 'Taipei',
+    status: 'active',
+    score: 94,
+  },
+  {
+    id: 'u-102',
+    name: 'Irene Lin',
+    role: 'UX Designer',
+    location: 'Kaohsiung',
+    status: 'paused',
+    score: 88,
+  },
+  {
+    id: 'u-103',
+    name: 'Noah Chen',
+    role: 'Product Manager',
+    location: 'Tainan',
+    status: 'active',
+    score: 91,
+  },
+  {
+    id: 'u-104',
+    name: 'Emma Hsu',
+    role: 'Data Analyst',
+    location: 'Taichung',
+    status: 'blocked',
+    score: 67,
+  },
+]);
+
+const tableSort = ref<SortState>(null);
+const peopleQuery = ref('');
+const footerState = ref<FooterDemoState>('idle');
+const feedItems = ref<number[]>([1, 2, 3, 4]);
+
+const peopleColumns: TableColumn[] = [
+  { key: 'name', label: 'Name', sortable: true, width: '26%' },
+  { key: 'role', label: 'Role', sortable: true, width: '24%' },
+  { key: 'location', label: 'Location', sortable: true, width: '18%' },
+  { key: 'status', label: 'Status', width: '14%' },
+  { key: 'score', label: 'Score', align: 'end', sortable: true, width: '18%' },
+];
+
+const filteredPeople = computed(() => {
+  const q = peopleQuery.value.trim().toLowerCase();
+  if (!q) return peopleRows.value;
+  return peopleRows.value.filter((row) =>
+    [row.name, row.role, row.location].some((text) =>
+      text.toLowerCase().includes(q),
+    ),
+  );
+});
+
+const sortedPeople = computed(() => {
+  const rows = [...filteredPeople.value];
+  if (!tableSort.value) return rows;
+
+  const { key, direction } = tableSort.value;
+  const factor = direction === 'asc' ? 1 : -1;
+
+  rows.sort((a, b) => {
+    const aValue = a[key as keyof DemoPerson];
+    const bValue = b[key as keyof DemoPerson];
+
+    if (typeof aValue === 'number' && typeof bValue === 'number') {
+      return (aValue - bValue) * factor;
+    }
+
+    return String(aValue).localeCompare(String(bValue)) * factor;
+  });
+
+  return rows;
+});
 
 const { show } = useToast();
 
@@ -76,6 +172,60 @@ function showToast(variant: ToastVariant) {
     message: messageByVariant[variant],
     duration: 2600,
   });
+}
+
+function statusVariant(status: PersonStatus): 'success' | 'warning' | 'danger' {
+  if (status === 'active') return 'success';
+  if (status === 'paused') return 'warning';
+  return 'danger';
+}
+
+function onTableSort(key: string) {
+  if (!tableSort.value || tableSort.value.key !== key) {
+    tableSort.value = { key, direction: 'asc' };
+    return;
+  }
+
+  tableSort.value = {
+    key,
+    direction: tableSort.value.direction === 'asc' ? 'desc' : 'asc',
+  };
+}
+
+function onRowAction(row: Record<string, unknown>, action: string) {
+  show({
+    variant: 'info',
+    message: `${action}: ${String(row.name ?? row.id)}`,
+    duration: 2200,
+  });
+}
+
+function onCardClick(row: DemoPerson) {
+  show({
+    variant: 'success',
+    message: `Open profile: ${row.name}`,
+    duration: 2000,
+  });
+}
+
+function onInfiniteLoad() {
+  if (footerState.value !== 'idle') return;
+
+  footerState.value = 'loading';
+  setTimeout(() => {
+    const next = feedItems.value.length + 1;
+    feedItems.value.push(next, next + 1);
+    footerState.value = feedItems.value.length >= 10 ? 'end' : 'idle';
+  }, 800);
+}
+
+function forceFooterState(state: FooterDemoState) {
+  footerState.value = state;
+}
+
+function resetInfiniteDemo() {
+  feedItems.value = [1, 2, 3, 4];
+  footerState.value = 'idle';
 }
 </script>
 
@@ -253,6 +403,156 @@ function showToast(variant: ToastVariant) {
         </Button>
       </div>
     </div>
+
+    <div class="stack-3">
+      <h3 class="demo-subtitle">
+        List Components
+      </h3>
+
+      <section class="surface-card list-demo stack-3">
+        <Toolbar>
+          <template #start>
+            <div class="toolbar-search">
+              <TextField
+                v-model="peopleQuery"
+                placeholder="Search name / role / location"
+                :clearable="true"
+                leading-icon="search"
+              />
+            </div>
+            <StatusBadge
+              variant="info"
+              :label="`${sortedPeople.length} results`"
+            />
+          </template>
+
+          <template #end>
+            <Button
+              variant="secondary"
+              size="sm"
+            >
+              Add Person
+            </Button>
+          </template>
+        </Toolbar>
+
+        <DataTable
+          :columns="peopleColumns"
+          :rows="sortedPeople"
+          row-key="id"
+          :sort="tableSort"
+          @sort="onTableSort"
+        >
+          <template #cell-status="{ value }">
+            <StatusBadge
+              :variant="statusVariant(value as PersonStatus)"
+              :label="String(value)"
+            />
+          </template>
+
+          <template #cell-score="{ value }">
+            {{ value }} pts
+          </template>
+
+          <template #row-actions="{ row }">
+            <IconButton
+              aria-label="Row action"
+              size="sm"
+              @click="onRowAction(row as Record<string, unknown>, 'More')"
+            >
+              ···
+            </IconButton>
+          </template>
+        </DataTable>
+      </section>
+
+      <section class="stack-3">
+        <p class="body-sm text-muted">
+          Mobile CardRow Preview
+        </p>
+        <CardRow
+          v-for="row in sortedPeople.slice(0, 3)"
+          :key="`card-${row.id}`"
+          clickable
+          @click="onCardClick(row)"
+        >
+          <template #primary>
+            {{ row.name }}
+          </template>
+          <template #secondary>
+            {{ row.role }} · {{ row.location }}
+          </template>
+          <template #meta>
+            <StatusBadge
+              :variant="statusVariant(row.status)"
+              :label="row.status"
+            />
+            <span>{{ row.score }} pts</span>
+          </template>
+          <template #actions>
+            <IconButton
+              aria-label="Card action"
+              size="sm"
+              @click="onRowAction(row as unknown as Record<string, unknown>, 'Action')"
+            >
+              ···
+            </IconButton>
+          </template>
+        </CardRow>
+      </section>
+
+      <section class="surface-card list-demo stack-3">
+        <p class="body-sm text-muted">
+          Infinite Footer Preview
+        </p>
+
+        <ul class="demo-feed">
+          <li
+            v-for="item in feedItems"
+            :key="item"
+            class="demo-feed__item"
+          >
+            Feed item #{{ item }}
+          </li>
+        </ul>
+
+        <InfiniteFooter
+          :state="footerState"
+          @load="onInfiniteLoad"
+        />
+
+        <div class="demo-row">
+          <Button
+            variant="ghost"
+            size="sm"
+            @click="resetInfiniteDemo"
+          >
+            Reset
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            @click="forceFooterState('idle')"
+          >
+            Idle
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            @click="forceFooterState('loading')"
+          >
+            Loading
+          </Button>
+          <Button
+            variant="danger"
+            size="sm"
+            @click="forceFooterState('error')"
+          >
+            Error
+          </Button>
+        </div>
+      </section>
+    </div>
   </section>
 
   <Modal
@@ -312,5 +612,33 @@ function showToast(variant: ToastVariant) {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
+}
+
+.list-demo {
+  padding: var(--space-4);
+}
+
+.toolbar-search {
+  width: min(360px, 100%);
+}
+
+.demo-feed {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.demo-feed__item {
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+  font-size: var(--font-size-md);
+  color: var(--color-text-secondary);
+}
+
+.demo-feed__item:last-child {
+  border-bottom: 0;
 }
 </style>
