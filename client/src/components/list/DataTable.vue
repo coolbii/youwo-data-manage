@@ -141,7 +141,7 @@ function sortIcon(col: TableColumn): string | null {
 <style scoped>
 .data-table-wrap {
   width: 100%;
-  overflow-x: auto;
+  overflow: visible;
 }
 
 .data-table {
@@ -151,7 +151,11 @@ function sortIcon(col: TableColumn): string | null {
 }
 
 .data-table__th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
   padding: var(--space-3) var(--space-4);
+  background: var(--color-bg);
   color: var(--color-muted);
   font-size: var(--font-size-sm);
   font-weight: 500;
