@@ -10,7 +10,7 @@ const props = withDefaults(
     label?: string;
     id?: string;
     name?: string;
-    type?: 'text' | 'email' | 'number' | 'search' | 'url' | 'tel';
+    type?: 'text' | 'email' | 'number' | 'search' | 'url' | 'tel' | 'date';
     placeholder?: string;
     autocomplete?: string;
     hint?: string;
@@ -70,7 +70,12 @@ function clearValue() {
       :for="inputId"
       class="text-field__label"
     >
-      {{ label }}
+      <span>{{ label }}</span>
+      <span
+        v-if="required"
+        class="text-field__required"
+        aria-hidden="true"
+      >*</span>
     </label>
 
     <div
@@ -167,11 +172,17 @@ function clearValue() {
 }
 
 .text-field__label {
-  display: block;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
   margin-bottom: var(--space-2);
   color: var(--color-text-secondary);
   font-size: var(--font-size-md);
   font-weight: 500;
+}
+
+.text-field__required {
+  color: var(--color-danger);
 }
 
 .text-field__control {

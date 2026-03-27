@@ -10,6 +10,16 @@ const router = createRouter({
       component: PeopleView,
     },
     {
+      path: '/people/new',
+      name: 'person-create',
+      component: () => import('../views/PersonFormView.vue'),
+    },
+    {
+      path: '/people/:id/edit',
+      name: 'person-edit',
+      component: () => import('../views/PersonFormView.vue'),
+    },
+    {
       path: '/preview',
       name: 'preview',
       component: () => import('../views/HomeView.vue'),

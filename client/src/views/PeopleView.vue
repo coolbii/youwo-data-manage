@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import Button from '../components/form/Button.vue';
 import IconButton from '../components/form/IconButton.vue';
 import TextField from '../components/form/TextField.vue';
@@ -14,6 +15,7 @@ import Menu from '../components/overlay/Menu.vue';
 import type { MenuItem } from '../components/overlay/Menu.vue';
 import Modal from '../components/overlay/Modal.vue';
 import { useToast } from '../composables/useToast';
+import { useApolloClient } from '@vue/apollo-composable';
 import {
   usePeopleListQuery,
   useDeletePersonMutation,
@@ -26,14 +28,76 @@ import {
 } from '../graphql/generated';
 
 const PAGE_SIZE = 10;
+const LIST_SCROLL_STORAGE_KEY = 'people-view-scroll';
+const VALID_SORT_FIELDS = new Set<string>(Object.values(PeopleSortField));
+const VALID_SORT_DIRECTIONS = new Set<string>(Object.values(SortDirection));
 
-const search = ref('');
-const sortBy = ref(PeopleSortField.CreatedAt);
-const sortDirection = ref(SortDirection.Asc);
+const route = useRoute();
+const router = useRouter();
+
+function parseQueryString(value: unknown): string {
+  return typeof value === 'string' ? value : '';
+}
+
+function parseSortField(value: unknown): PeopleSortField {
+  if (typeof value === 'string' && VALID_SORT_FIELDS.has(value)) {
+    return value as PeopleSortField;
+  }
+  return PeopleSortField.CreatedAt;
+}
+
+function parseSortDirection(value: unknown): SortDirection {
+  if (typeof value === 'string' && VALID_SORT_DIRECTIONS.has(value)) {
+    return value as SortDirection;
+  }
+  return SortDirection.Asc;
+}
+
+const search = ref(parseQueryString(route.query.search).trim());
+const sortBy = ref(parseSortField(route.query.sortBy));
+const sortDirection = ref(parseSortDirection(route.query.sortDirection));
 const isFetchingMore = ref(false);
 const loadMoreError = ref(false);
 const listScrollEl = ref<HTMLElement | null>(null);
 const listViewportHeight = ref<number | null>(null);
+const didRestoreScroll = ref(false);
+const searchInput = ref(search.value);
+
+function buildListRouteQuery() {
+  const query: Record<string, string> = {};
+  if (search.value.trim()) query.search = search.value.trim();
+  if (sortBy.value !== PeopleSortField.CreatedAt) query.sortBy = sortBy.value;
+  if (sortDirection.value !== SortDirection.Asc) {
+    query.sortDirection = sortDirection.value;
+  }
+  return query;
+}
+
+function serializeListRouteQuery(query: Record<string, string>): string {
+  return JSON.stringify(query);
+}
+
+function routeListQuerySnapshot() {
+  const query: Record<string, string> = {};
+  const searchQuery = parseQueryString(route.query.search).trim();
+  const sortByQuery = parseQueryString(route.query.sortBy);
+  const sortDirectionQuery = parseQueryString(route.query.sortDirection);
+
+  if (searchQuery) query.search = searchQuery;
+  if (
+    VALID_SORT_FIELDS.has(sortByQuery) &&
+    sortByQuery !== PeopleSortField.CreatedAt
+  ) {
+    query.sortBy = sortByQuery;
+  }
+  if (
+    VALID_SORT_DIRECTIONS.has(sortDirectionQuery) &&
+    sortDirectionQuery !== SortDirection.Asc
+  ) {
+    query.sortDirection = sortDirectionQuery;
+  }
+  return query;
+}
 
 const { result, loading, fetchMore, refetch } = usePeopleListQuery(
   () => ({
@@ -108,13 +172,43 @@ const footerEndLabel = computed(() => {
 });
 
 let searchTimeout: ReturnType<typeof setTimeout> | null = null;
-const searchInput = ref('');
 
 watch(searchInput, (val) => {
   if (searchTimeout) clearTimeout(searchTimeout);
   searchTimeout = setTimeout(() => {
-    search.value = val;
+    search.value = val.trim();
   }, 300);
+});
+
+watch(
+  () => [route.query.search, route.query.sortBy, route.query.sortDirection],
+  ([searchQuery, sortByQuery, sortDirectionQuery]) => {
+    const nextSearch = parseQueryString(searchQuery).trim();
+    const nextSortBy = parseSortField(sortByQuery);
+    const nextSortDirection = parseSortDirection(sortDirectionQuery);
+
+    if (search.value !== nextSearch) search.value = nextSearch;
+    if (searchInput.value !== nextSearch) searchInput.value = nextSearch;
+    if (sortBy.value !== nextSortBy) sortBy.value = nextSortBy;
+    if (sortDirection.value !== nextSortDirection) {
+      sortDirection.value = nextSortDirection;
+    }
+  },
+);
+
+watch([search, sortBy, sortDirection], () => {
+  const nextQuery = buildListRouteQuery();
+  if (
+    serializeListRouteQuery(nextQuery) ===
+    serializeListRouteQuery(routeListQuerySnapshot())
+  ) {
+    return;
+  }
+
+  router.replace({
+    name: 'people',
+    query: nextQuery,
+  });
 });
 
 function updateListViewportHeight() {
@@ -127,17 +221,83 @@ function updateListViewportHeight() {
   );
 }
 
+function saveListScrollSnapshot() {
+  if (!listScrollEl.value || typeof window === 'undefined') return;
+
+  window.sessionStorage.setItem(
+    LIST_SCROLL_STORAGE_KEY,
+    JSON.stringify({
+      query: buildListRouteQuery(),
+      scrollTop: listScrollEl.value.scrollTop,
+    }),
+  );
+}
+
+function restoreListScrollSnapshot() {
+  if (didRestoreScroll.value || !listScrollEl.value || typeof window === 'undefined') {
+    return;
+  }
+
+  const raw = window.sessionStorage.getItem(LIST_SCROLL_STORAGE_KEY);
+  if (!raw) return;
+
+  try {
+    const snapshot = JSON.parse(raw) as {
+      query?: Record<string, string>;
+      scrollTop?: number;
+    };
+
+    if (
+      serializeListRouteQuery(snapshot.query ?? {}) !==
+      serializeListRouteQuery(buildListRouteQuery())
+    ) {
+      return;
+    }
+
+    listScrollEl.value.scrollTop =
+      typeof snapshot.scrollTop === 'number' ? snapshot.scrollTop : 0;
+    didRestoreScroll.value = true;
+    window.sessionStorage.removeItem(LIST_SCROLL_STORAGE_KEY);
+  } catch {
+    window.sessionStorage.removeItem(LIST_SCROLL_STORAGE_KEY);
+  }
+}
+
 onMounted(() => {
   updateListViewportHeight();
   window.addEventListener('resize', updateListViewportHeight);
   requestAnimationFrame(() => {
     updateListViewportHeight();
+    restoreListScrollSnapshot();
   });
 });
 
 onBeforeUnmount(() => {
   window.removeEventListener('resize', updateListViewportHeight);
+  if (searchTimeout) clearTimeout(searchTimeout);
 });
+
+watch(
+  [() => people.value.length, listViewportHeight],
+  async () => {
+    await nextTick();
+    restoreListScrollSnapshot();
+  },
+  { flush: 'post' },
+);
+
+watch(
+  () => route.query.refresh,
+  async (refreshToken) => {
+    if (typeof refreshToken !== 'string' || !refreshToken) return;
+    await refetch();
+    await router.replace({
+      name: 'people',
+      query: buildListRouteQuery(),
+    });
+  },
+  { immediate: true },
+);
 
 async function onLoadMore() {
   if (isFetchingMore.value) return;
@@ -289,10 +449,30 @@ function onRowAction(
   if (key === 'delete') {
     confirmDelete(row);
   } else if (key === 'edit') {
-    show({ variant: 'info', message: `Edit: ${row.name} (TODO)`, duration: 2000 });
+    openEdit(row);
   } else if (key === 'pin') {
     pinPerson(row);
   }
+}
+
+// --- Add / Edit form ---
+
+function openAdd() {
+  saveListScrollSnapshot();
+  router.push({
+    name: 'person-create',
+    query: buildListRouteQuery(),
+  });
+}
+
+function openEdit(person: PersonFieldsFragment) {
+  if (!person.id) return;
+  saveListScrollSnapshot();
+  router.push({
+    name: 'person-edit',
+    params: { id: person.id },
+    query: buildListRouteQuery(),
+  });
 }
 
 // --- Delete ---
@@ -300,6 +480,7 @@ function onRowAction(
 const deleteTarget = ref<PersonFieldsFragment | null>(null);
 const showDeleteModal = ref(false);
 
+const { client: apolloClient } = useApolloClient();
 const { mutate: doDelete, loading: deleting } = useDeletePersonMutation({});
 
 function confirmDelete(person: PersonFieldsFragment) {
@@ -309,12 +490,14 @@ function confirmDelete(person: PersonFieldsFragment) {
 
 async function executeDelete() {
   if (!deleteTarget.value) return;
+  const target = deleteTarget.value;
   try {
-    await doDelete({ id: deleteTarget.value.id });
-    show({ variant: 'success', message: `Deleted ${deleteTarget.value.name}` });
+    await doDelete({ id: target.id });
+    show({ variant: 'success', message: `Deleted ${target.name}` });
     showDeleteModal.value = false;
     deleteTarget.value = null;
-    refetch();
+    apolloClient.cache.evict({ id: apolloClient.cache.identify({ __typename: 'PersonPayload', id: target.id }) });
+    apolloClient.cache.gc();
   } catch (err) {
     show({
       variant: 'error',
@@ -366,6 +549,12 @@ function formatDate(iso: string | null | undefined): string {
       </template>
 
       <template #end>
+        <Button
+          size="sm"
+          @click="openAdd"
+        >
+          Add person
+        </Button>
         <Dropdown align="end">
           <template #trigger>
             <button class="sort-chip">
