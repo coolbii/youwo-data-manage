@@ -12,6 +12,7 @@
     "lint:api-java": "nx lint api-java",
     "test:api-java": "nx run api-java:test",
     "graphql:codegen": "nx run api-java:graphql-codegen",
+    "graphql:codegen:client": "graphql-codegen --config codegen.yml",
     "graphql:check": "nx run api-java:graphql-drift-check",
     "db:migrate": "if [ -f .env ]; then set -a; . ./.env; set +a; fi; nx run api-java:db-migrate",
     "db:ddl-draft": "if [ -f .env ]; then set -a; . ./.env; set +a; fi; nx run api-java:db-ddl-draft",
@@ -24,6 +25,10 @@
   "private": true,
   "devDependencies": {
     "@eslint/js": "^9.8.0",
+    "@graphql-codegen/cli": "^6.2.1",
+    "@graphql-codegen/typescript": "^5.0.9",
+    "@graphql-codegen/typescript-operations": "^5.0.9",
+    "@graphql-codegen/typescript-vue-apollo": "^5.0.0",
     "@nx/eslint": "22.6.0",
     "@nx/eslint-plugin": "22.6.0",
     "@nx/express": "^22.6.0",
@@ -79,6 +84,8 @@
     "webpack-cli": "^5.1.4"
   },
   "dependencies": {
+    "@apollo/client": "^3.14.1",
+    "@vue/apollo-composable": "^4.2.2",
     "axios": "^1.6.0",
     "dotenv": "^17.3.1",
     "express": "^4.21.2",

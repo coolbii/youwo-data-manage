@@ -1,0 +1,31 @@
+fragment PinRuleFields on PinRulePayload {
+  id
+  personId
+  personName
+  targetPosition
+  enabled
+  createdAt
+  updatedAt
+}
+
+query PinRules {
+  pinRules {
+    ...PinRuleFields
+  }
+}
+
+mutation CreatePinRule($personId: UUID!, $targetPosition: Int!) {
+  createPinRule(personId: $personId, targetPosition: $targetPosition) {
+    ...PinRuleFields
+  }
+}
+
+mutation UpdatePinRule($id: UUID!, $targetPosition: Int, $enabled: Boolean) {
+  updatePinRule(id: $id, targetPosition: $targetPosition, enabled: $enabled) {
+    ...PinRuleFields
+  }
+}
+
+mutation DeletePinRule($id: UUID!) {
+  deletePinRule(id: $id)
+}

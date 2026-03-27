@@ -1,0 +1,79 @@
+fragment PersonFields on PersonPayload {
+  id
+  name
+  position
+  location
+  age
+  birthdate
+  createdAt
+  updatedAt
+}
+
+query PeopleList(
+  $first: Int
+  $after: String
+  $search: String
+  $sortBy: PeopleSortField
+  $sortDirection: SortDirection
+) {
+  peopleList(
+    first: $first
+    after: $after
+    search: $search
+    sortBy: $sortBy
+    sortDirection: $sortDirection
+  ) {
+    nodes {
+      ...PersonFields
+    }
+    pageInfo {
+      endCursor
+      hasNextPage
+    }
+    totalCount
+  }
+}
+
+query PersonDetail($id: UUID) {
+  person(id: $id) {
+    ...PersonFields
+  }
+}
+
+mutation DeletePerson($id: UUID!) {
+  deletePerson(id: $id)
+}
+
+mutation CreatePerson(
+  $name: String!
+  $position: String!
+  $location: String!
+  $birthdate: String!
+) {
+  createPerson(
+    name: $name
+    position: $position
+    location: $location
+    birthdate: $birthdate
+  ) {
+    ...PersonFields
+  }
+}
+
+mutation UpdatePerson(
+  $id: UUID!
+  $name: String
+  $position: String
+  $location: String
+  $birthdate: String
+) {
+  updatePerson(
+    id: $id
+    name: $name
+    position: $position
+    location: $location
+    birthdate: $birthdate
+  ) {
+    ...PersonFields
+  }
+}

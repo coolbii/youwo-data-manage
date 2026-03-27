@@ -1,0 +1,15 @@
+schema: ./graphql/schema.graphql
+documents:
+  - ./client/src/graphql/**/*.graphql
+generates:
+  ./client/src/graphql/generated.ts:
+    plugins:
+      - typescript
+      - typescript-operations
+      - typescript-vue-apollo
+    config:
+      addDocBlocks: false
+      useTypeImports: true
+      vueApolloComposableImport: '@vue/apollo-composable'
+      vueCompositionApiImportFrom: 'vue'
+      withSmartOperationFunctions: false

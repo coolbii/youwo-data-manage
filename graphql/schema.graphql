@@ -1,0 +1,85 @@
+scalar UUID
+
+type Query {
+  peopleList(
+    first: Int
+    after: String
+    search: String
+    sortBy: PeopleSortField
+    sortDirection: SortDirection
+  ): PeopleConnectionPayload
+
+  person(id: UUID): PersonPayload
+
+  pinRules: [PinRulePayload]
+}
+
+type Mutation {
+  createPerson(
+    name: String!
+    position: String!
+    location: String!
+    birthdate: String!
+  ): PersonPayload
+
+  updatePerson(
+    id: UUID!
+    name: String
+    position: String
+    location: String
+    birthdate: String
+  ): PersonPayload
+
+  deletePerson(id: UUID!): Boolean
+
+  createPinRule(personId: UUID!, targetPosition: Int!): PinRulePayload
+  updatePinRule(id: UUID!, targetPosition: Int, enabled: Boolean): PinRulePayload
+  deletePinRule(id: UUID!): Boolean
+}
+
+type PersonPayload {
+  id: UUID
+  name: String
+  position: String
+  location: String
+  age: Int
+  birthdate: String
+  createdAt: String
+  updatedAt: String
+}
+
+type PeopleConnectionPayload {
+  nodes: [PersonPayload]
+  pageInfo: PeoplePageInfoPayload
+  totalCount: Long
+}
+
+type PeoplePageInfoPayload {
+  endCursor: String
+  hasNextPage: Boolean!
+}
+
+type PinRulePayload {
+  id: UUID
+  personId: UUID
+  personName: String
+  targetPosition: Int!
+  enabled: Boolean!
+  createdAt: String
+  updatedAt: String
+}
+
+enum PeopleSortField {
+  NAME
+  POSITION
+  LOCATION
+  BIRTHDATE
+  CREATED_AT
+}
+
+enum SortDirection {
+  ASC
+  DESC
+}
+
+scalar Long

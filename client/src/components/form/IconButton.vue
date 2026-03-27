@@ -4,7 +4,7 @@ type IconButtonSize = 'sm' | 'md' | 'lg';
 
 withDefaults(
   defineProps<{
-    ariaLabel: string;
+    ariaLabel?: string;
     variant?: IconButtonVariant;
     size?: IconButtonSize;
     disabled?: boolean;
@@ -12,6 +12,7 @@ withDefaults(
     type?: 'button' | 'submit' | 'reset';
   }>(),
   {
+    ariaLabel: undefined,
     variant: 'secondary',
     size: 'md',
     disabled: false,
