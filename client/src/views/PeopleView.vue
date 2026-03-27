@@ -10,6 +10,7 @@ import type { TableColumn } from '../components/list/DataTable.vue';
 import CardRow from '../components/list/CardRow.vue';
 import StatusBadge from '../components/list/StatusBadge.vue';
 import InfiniteFooter from '../components/list/InfiniteFooter.vue';
+import EmptyState from '../components/feedback/EmptyState.vue';
 import Dropdown from '../components/overlay/Dropdown.vue';
 import Menu from '../components/overlay/Menu.vue';
 import type { MenuItem } from '../components/overlay/Menu.vue';
@@ -123,6 +124,18 @@ const normalizedTotalCount = computed(() => {
   return Number.isFinite(numeric) ? numeric : 0;
 });
 const activeSearchTerm = computed(() => search.value.trim());
+const isEmptyDirectory = computed(
+  () => !loading.value && normalizedTotalCount.value === 0 && !activeSearchTerm.value,
+);
+const isSearchNoResult = computed(
+  () => !loading.value && normalizedTotalCount.value === 0 && !!activeSearchTerm.value,
+);
+const showEmptyState = computed(() => isEmptyDirectory.value || isSearchNoResult.value);
+
+function clearSearch() {
+  searchInput.value = '';
+  search.value = '';
+}
 
 const footerState = computed(() => {
   if (loading.value && people.value.length === 0) return 'loading' as const;
@@ -137,17 +150,10 @@ function formatCount(value: number): string {
 }
 
 const loadedSummary = computed(() => {
-  if (
-    loading.value &&
-    loadedCount.value === 0 &&
-    normalizedTotalCount.value === 0
-  ) {
+  if (loading.value && loadedCount.value === 0 && normalizedTotalCount.value === 0) {
     return '';
   }
-
-  if (normalizedTotalCount.value === 0 && activeSearchTerm.value) {
-    return `0 results matching '${activeSearchTerm.value}'`;
-  }
+  if (showEmptyState.value) return '';
 
   const base = `${formatCount(loadedCount.value)} of ${formatCount(normalizedTotalCount.value)} loaded`;
   if (activeSearchTerm.value) return `${base} · matching '${activeSearchTerm.value}'`;
@@ -165,9 +171,7 @@ const footerHint = computed(() => {
 });
 
 const footerEndLabel = computed(() => {
-  if (normalizedTotalCount.value === 0 && activeSearchTerm.value) {
-    return `0 results matching '${activeSearchTerm.value}'`;
-  }
+  if (showEmptyState.value) return '';
   return 'All loaded';
 });
 
@@ -711,117 +715,155 @@ function formatDate(iso: string | null | undefined): string {
           : undefined
       "
     >
-      <!-- Desktop table -->
-      <div class="people-view__table">
-        <DataTable
-          :columns="columns"
-          :rows="(people as unknown as Record<string, unknown>[])"
-          row-key="id"
+      <!-- Empty states -->
+      <template v-if="showEmptyState">
+        <EmptyState
+          v-if="isSearchNoResult"
+          icon="search"
+          :title="`No results for '${activeSearchTerm}'`"
+          description="Try a different keyword or clear the search to see all people."
         >
-          <template #cell-pin="{ row }">
-            <span
-              v-if="personPin(row as unknown as PersonFieldsFragment)"
-              class="pin-badge"
+          <template #action>
+            <Button
+              size="sm"
+              variant="ghost"
+              @click="clearSearch"
             >
-              {{ personPin(row as unknown as PersonFieldsFragment)!.targetPosition }}
-            </span>
-            <span
-              v-else
-              class="pin-badge--empty"
-            >—</span>
+              Clear search
+            </Button>
           </template>
+        </EmptyState>
 
-          <template #cell-age="{ value }">
-            {{ value ?? '—' }}
-          </template>
-
-          <template #cell-birthdate="{ value }">
-            {{ formatDate(value as string) }}
-          </template>
-
-          <template #cell-createdAt="{ value }">
-            {{ formatDate(value as string) }}
-          </template>
-
-          <template #row-actions="{ row }">
-            <Dropdown align="end">
-              <template #trigger>
-                <IconButton
-                  aria-label="Row actions"
-                  size="sm"
-                  variant="ghost"
-                >
-                  ···
-                </IconButton>
-              </template>
-              <template #default="{ close }">
-                <Menu
-                  :items="rowMenuItems"
-                  @select="
-                    (key) =>
-                      onRowAction(
-                        row as unknown as PersonFieldsFragment,
-                        key,
-                        close,
-                      )
-                  "
-                />
-              </template>
-            </Dropdown>
-          </template>
-        </DataTable>
-      </div>
-
-      <!-- Mobile cards -->
-      <div class="people-view__cards">
-        <CardRow
-          v-for="person in people"
-          :key="person.id"
+        <EmptyState
+          v-else
+          icon="people"
+          title="No people yet"
+          description="Add your first person to get started with the directory."
         >
-          <template #primary>
-            <span class="people-view__card-name">
-              <span
-                v-if="personPin(person)"
-                class="pin-badge pin-badge--inline"
-              >{{ personPin(person)!.targetPosition }}</span>
-              {{ person.name }}
-            </span>
+          <template #action>
+            <Button
+              size="sm"
+              @click="openAdd"
+            >
+              Add person
+            </Button>
           </template>
-          <template #secondary>
-            {{ person.position }} · {{ person.location }}
-          </template>
-          <template #meta>
-            <span v-if="person.age">{{ person.age }} yrs</span>
-          </template>
-          <template #actions>
-            <Dropdown align="end">
-              <template #trigger>
-                <IconButton
-                  aria-label="Row actions"
-                  size="sm"
-                  variant="ghost"
-                >
-                  ···
-                </IconButton>
-              </template>
-              <template #default="{ close }">
-                <Menu
-                  :items="rowMenuItems"
-                  @select="(key) => onRowAction(person, key, close)"
-                />
-              </template>
-            </Dropdown>
-          </template>
-        </CardRow>
-      </div>
+        </EmptyState>
+      </template>
 
-      <InfiniteFooter
-        :state="footerState"
-        :hint="footerHint"
-        :end-label="footerEndLabel"
-        :scroll-root="listScrollEl"
-        @load="onLoadMore"
-      />
+      <template v-else>
+        <!-- Desktop table -->
+        <div class="people-view__table">
+          <DataTable
+            :columns="columns"
+            :rows="(people as unknown as Record<string, unknown>[])"
+            row-key="id"
+          >
+            <template #cell-pin="{ row }">
+              <span
+                v-if="personPin(row as unknown as PersonFieldsFragment)"
+                class="pin-badge"
+              >
+                {{ personPin(row as unknown as PersonFieldsFragment)!.targetPosition }}
+              </span>
+              <span
+                v-else
+                class="pin-badge--empty"
+              >—</span>
+            </template>
+
+            <template #cell-age="{ value }">
+              {{ value ?? '—' }}
+            </template>
+
+            <template #cell-birthdate="{ value }">
+              {{ formatDate(value as string) }}
+            </template>
+
+            <template #cell-createdAt="{ value }">
+              {{ formatDate(value as string) }}
+            </template>
+
+            <template #row-actions="{ row }">
+              <Dropdown align="end">
+                <template #trigger>
+                  <IconButton
+                    aria-label="Row actions"
+                    size="sm"
+                    variant="ghost"
+                  >
+                    ···
+                  </IconButton>
+                </template>
+                <template #default="{ close }">
+                  <Menu
+                    :items="rowMenuItems"
+                    @select="
+                      (key) =>
+                        onRowAction(
+                          row as unknown as PersonFieldsFragment,
+                          key,
+                          close,
+                        )
+                    "
+                  />
+                </template>
+              </Dropdown>
+            </template>
+          </DataTable>
+        </div>
+
+        <!-- Mobile cards -->
+        <div class="people-view__cards">
+          <CardRow
+            v-for="person in people"
+            :key="person.id"
+          >
+            <template #primary>
+              <span class="people-view__card-name">
+                <span
+                  v-if="personPin(person)"
+                  class="pin-badge pin-badge--inline"
+                >{{ personPin(person)!.targetPosition }}</span>
+                {{ person.name }}
+              </span>
+            </template>
+            <template #secondary>
+              {{ person.position }} · {{ person.location }}
+            </template>
+            <template #meta>
+              <span v-if="person.age">{{ person.age }} yrs</span>
+            </template>
+            <template #actions>
+              <Dropdown align="end">
+                <template #trigger>
+                  <IconButton
+                    aria-label="Row actions"
+                    size="sm"
+                    variant="ghost"
+                  >
+                    ···
+                  </IconButton>
+                </template>
+                <template #default="{ close }">
+                  <Menu
+                    :items="rowMenuItems"
+                    @select="(key) => onRowAction(person, key, close)"
+                  />
+                </template>
+              </Dropdown>
+            </template>
+          </CardRow>
+        </div>
+
+        <InfiniteFooter
+          :state="footerState"
+          :hint="footerHint"
+          :end-label="footerEndLabel"
+          :scroll-root="listScrollEl"
+          @load="onLoadMore"
+        />
+      </template>
     </div>
   </div>
 
