@@ -34,7 +34,7 @@ withDefaults(
 
 .toolbar--sticky {
   position: sticky;
-  top: 0;
+  top: var(--app-bar-h);
   z-index: 10;
   background: var(--color-bg);
 }

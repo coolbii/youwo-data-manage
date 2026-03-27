@@ -84,9 +84,12 @@
   --color-backdrop: rgb(0 0 0 / 40%);
   --shadow-lg: 0 16px 48px rgb(15 23 42 / 12%);
 
+  --z-app-bar: 50;
   --z-dropdown: 100;
   --z-modal: 200;
   --z-toast: 300;
+
+  --app-bar-h: 56px;
 }
 
 *,
@@ -248,6 +251,24 @@ pre {
 
   .py-6u {
     padding-block: var(--space-6);
+  }
+}
+
+@media (max-width: 1023px) {
+  :root {
+    --app-bar-h: 52px;
+  }
+}
+
+@media (max-width: 599px) {
+  :root {
+    --app-bar-h: 48px;
+  }
+}
+
+@media (max-width: 374px) {
+  :root {
+    --app-bar-h: 44px;
   }
 }
 
