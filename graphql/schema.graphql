@@ -11,7 +11,7 @@ type Query {
 
   person(id: UUID): PersonPayload
 
-  pinRules: [PinRulePayload]
+  pinRules(scopeTotal: Int): [PinRulePayload]
 }
 
 type Mutation {
@@ -32,8 +32,8 @@ type Mutation {
 
   deletePerson(id: UUID!): Boolean
 
-  createPinRule(personId: UUID!, targetPosition: Int!): PinRulePayload
-  updatePinRule(id: UUID!, targetPosition: Int, enabled: Boolean): PinRulePayload
+  createPinRule(personId: UUID!, targetPosition: Int!, scopeTotal: Int): PinRulePayload
+  updatePinRule(id: UUID!, targetPosition: Int, enabled: Boolean, scopeTotal: Int): PinRulePayload
   deletePinRule(id: UUID!): Boolean
 }
 
@@ -64,9 +64,19 @@ type PinRulePayload {
   personId: UUID
   personName: String
   targetPosition: Int!
+  targetIndex: Int!
+  effectiveIndex: Int
+  state: PinRuleState!
   enabled: Boolean!
   createdAt: String
   updatedAt: String
+}
+
+enum PinRuleState {
+  ACTIVE
+  CLAMPED
+  INACTIVE
+  NO_MATCH
 }
 
 enum PeopleSortField {

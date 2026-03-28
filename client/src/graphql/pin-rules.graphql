@@ -3,25 +3,33 @@ fragment PinRuleFields on PinRulePayload {
   personId
   personName
   targetPosition
+  targetIndex
+  effectiveIndex
+  state
   enabled
   createdAt
   updatedAt
 }
 
-query PinRules {
-  pinRules {
+query PinRules($scopeTotal: Int) {
+  pinRules(scopeTotal: $scopeTotal) {
     ...PinRuleFields
   }
 }
 
-mutation CreatePinRule($personId: UUID!, $targetPosition: Int!) {
-  createPinRule(personId: $personId, targetPosition: $targetPosition) {
+mutation CreatePinRule($personId: UUID!, $targetPosition: Int!, $scopeTotal: Int) {
+  createPinRule(personId: $personId, targetPosition: $targetPosition, scopeTotal: $scopeTotal) {
     ...PinRuleFields
   }
 }
 
-mutation UpdatePinRule($id: UUID!, $targetPosition: Int, $enabled: Boolean) {
-  updatePinRule(id: $id, targetPosition: $targetPosition, enabled: $enabled) {
+mutation UpdatePinRule($id: UUID!, $targetPosition: Int, $enabled: Boolean, $scopeTotal: Int) {
+  updatePinRule(
+    id: $id
+    targetPosition: $targetPosition
+    enabled: $enabled
+    scopeTotal: $scopeTotal
+  ) {
     ...PinRuleFields
   }
 }

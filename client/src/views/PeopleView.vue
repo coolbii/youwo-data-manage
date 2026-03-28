@@ -344,7 +344,9 @@ async function onLoadMore() {
 
 // --- Pin rules ---
 
-const { result: pinResult, refetch: refetchPins } = usePinRulesQuery();
+const { result: pinResult, refetch: refetchPins } = usePinRulesQuery(
+  () => ({ scopeTotal: normalizedTotalCount.value }),
+);
 const { mutate: doCreatePin } = useCreatePinRuleMutation({});
 
 const pinRules = computed(
@@ -389,7 +391,11 @@ async function pinPerson(person: PersonFieldsFragment) {
   if (!person.id) return;
   const targetPosition = nextPinTargetPosition.value;
   try {
-    await doCreatePin({ personId: person.id, targetPosition });
+    await doCreatePin({
+      personId: person.id,
+      targetPosition,
+      scopeTotal: normalizedTotalCount.value,
+    });
     show({ variant: 'success', message: `Pinned ${person.name} to position ${targetPosition}` });
     await refreshPinsAndList();
   } catch (err) {

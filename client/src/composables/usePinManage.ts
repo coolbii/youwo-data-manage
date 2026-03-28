@@ -389,7 +389,11 @@ export function usePinManage({
     if (!id || pinTogglingIds.value.has(id)) return;
     pinTogglingIds.value.add(id);
     try {
-      await doUpdatePin({ id, enabled: !rule.enabled });
+      await doUpdatePin({
+        id,
+        enabled: !rule.enabled,
+        scopeTotal: normalizedResultTotal.value,
+      });
       await onRefresh();
     } catch (err) {
       notify({
@@ -429,7 +433,11 @@ export function usePinManage({
 
     if (nextPosition == null || nextPosition === rule.targetPosition) return;
     try {
-      await doUpdatePin({ id, targetPosition: nextPosition });
+      await doUpdatePin({
+        id,
+        targetPosition: nextPosition,
+        scopeTotal: normalizedResultTotal.value,
+      });
       await onRefresh();
     } catch (err) {
       notify({
@@ -515,7 +523,11 @@ export function usePinManage({
     addRuleSubmitting.value = true;
     addRuleError.value = '';
     try {
-      await doCreatePin({ personId, targetPosition });
+      await doCreatePin({
+        personId,
+        targetPosition,
+        scopeTotal: normalizedResultTotal.value,
+      });
       notify({ variant: 'success', message: `Added pin rule at position ${targetPosition}` });
       await onRefresh();
       resetAddRuleForm();

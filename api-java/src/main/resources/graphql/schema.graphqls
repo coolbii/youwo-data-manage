@@ -1,6 +1,7 @@
 # GENERATED FILE. DO NOT EDIT MANUALLY.
 schema {
   query: Query
+  mutation: Mutation
 }
 
 "Marks the field, argument, input field or enum value as deprecated"
@@ -30,9 +31,20 @@ directive @specifiedBy(
     url: String!
   ) on SCALAR
 
+"Mutation root"
+type Mutation {
+  createPerson(birthdate: String, location: String, name: String, position: String): PersonPayload
+  createPinRule(personId: UUID, scopeTotal: Int, targetPosition: Int!): PinRulePayload
+  deletePerson(id: UUID): Boolean!
+  deletePinRule(id: UUID): Boolean!
+  updatePerson(birthdate: String, id: UUID, location: String, name: String, position: String): PersonPayload
+  updatePinRule(enabled: Boolean, id: UUID, scopeTotal: Int, targetPosition: Int): PinRulePayload
+}
+
 type PeopleConnectionPayload {
   nodes: [PersonPayload]
   pageInfo: PeoplePageInfoPayload
+  totalCount: Long!
 }
 
 type PeoplePageInfoPayload {
@@ -51,11 +63,48 @@ type PersonPayload {
   updatedAt: String
 }
 
+type PinRulePayload {
+  createdAt: String
+  effectiveIndex: Int
+  enabled: Boolean!
+  id: UUID
+  personId: UUID
+  personName: String
+  state: PinRuleState!
+  targetIndex: Int!
+  targetPosition: Int!
+  updatedAt: String
+}
+
 "Query root"
 type Query {
-  peopleList(after: String, first: Int): PeopleConnectionPayload
+  peopleList(after: String, first: Int, search: String, sortBy: PeopleSortField, sortDirection: SortDirection): PeopleConnectionPayload
   person(id: UUID): PersonPayload
+  pinRules(scopeTotal: Int): [PinRulePayload]
 }
+
+enum PeopleSortField {
+  BIRTHDATE
+  CREATED_AT
+  LOCATION
+  NAME
+  POSITION
+}
+
+enum PinRuleState {
+  ACTIVE
+  CLAMPED
+  INACTIVE
+  NO_MATCH
+}
+
+enum SortDirection {
+  ASC
+  DESC
+}
+
+"A 64-bit signed integer"
+scalar Long
 
 "UUID String"
 scalar UUID

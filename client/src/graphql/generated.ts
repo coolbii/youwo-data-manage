@@ -41,6 +41,7 @@ export type MutationCreatePersonArgs = {
 
 export type MutationCreatePinRuleArgs = {
   personId: Scalars['UUID']['input'];
+  scopeTotal?: InputMaybe<Scalars['Int']['input']>;
   targetPosition: Scalars['Int']['input'];
 };
 
@@ -67,6 +68,7 @@ export type MutationUpdatePersonArgs = {
 export type MutationUpdatePinRuleArgs = {
   enabled?: InputMaybe<Scalars['Boolean']['input']>;
   id: Scalars['UUID']['input'];
+  scopeTotal?: InputMaybe<Scalars['Int']['input']>;
   targetPosition?: InputMaybe<Scalars['Int']['input']>;
 };
 
@@ -106,13 +108,23 @@ export type PersonPayload = {
 export type PinRulePayload = {
   __typename?: 'PinRulePayload';
   createdAt?: Maybe<Scalars['String']['output']>;
+  effectiveIndex?: Maybe<Scalars['Int']['output']>;
   enabled: Scalars['Boolean']['output'];
   id?: Maybe<Scalars['UUID']['output']>;
   personId?: Maybe<Scalars['UUID']['output']>;
   personName?: Maybe<Scalars['String']['output']>;
+  state: PinRuleState;
+  targetIndex: Scalars['Int']['output'];
   targetPosition: Scalars['Int']['output'];
   updatedAt?: Maybe<Scalars['String']['output']>;
 };
+
+export enum PinRuleState {
+  Active = 'ACTIVE',
+  Clamped = 'CLAMPED',
+  Inactive = 'INACTIVE',
+  NoMatch = 'NO_MATCH'
+}
 
 export type Query = {
   __typename?: 'Query';
@@ -133,6 +145,11 @@ export type QueryPeopleListArgs = {
 
 export type QueryPersonArgs = {
   id?: InputMaybe<Scalars['UUID']['input']>;
+};
+
+
+export type QueryPinRulesArgs = {
+  scopeTotal?: InputMaybe<Scalars['Int']['input']>;
 };
 
 export enum SortDirection {
@@ -188,29 +205,33 @@ export type UpdatePersonMutationVariables = Exact<{
 
 export type UpdatePersonMutation = { __typename?: 'Mutation', updatePerson?: { __typename?: 'PersonPayload', id?: any | null, name?: string | null, position?: string | null, location?: string | null, age?: number | null, birthdate?: string | null, createdAt?: string | null, updatedAt?: string | null } | null };
 
-export type PinRuleFieldsFragment = { __typename?: 'PinRulePayload', id?: any | null, personId?: any | null, personName?: string | null, targetPosition: number, enabled: boolean, createdAt?: string | null, updatedAt?: string | null };
+export type PinRuleFieldsFragment = { __typename?: 'PinRulePayload', id?: any | null, personId?: any | null, personName?: string | null, targetPosition: number, targetIndex: number, effectiveIndex?: number | null, state: PinRuleState, enabled: boolean, createdAt?: string | null, updatedAt?: string | null };
 
-export type PinRulesQueryVariables = Exact<{ [key: string]: never; }>;
+export type PinRulesQueryVariables = Exact<{
+  scopeTotal?: InputMaybe<Scalars['Int']['input']>;
+}>;
 
 
-export type PinRulesQuery = { __typename?: 'Query', pinRules?: Array<{ __typename?: 'PinRulePayload', id?: any | null, personId?: any | null, personName?: string | null, targetPosition: number, enabled: boolean, createdAt?: string | null, updatedAt?: string | null } | null> | null };
+export type PinRulesQuery = { __typename?: 'Query', pinRules?: Array<{ __typename?: 'PinRulePayload', id?: any | null, personId?: any | null, personName?: string | null, targetPosition: number, targetIndex: number, effectiveIndex?: number | null, state: PinRuleState, enabled: boolean, createdAt?: string | null, updatedAt?: string | null } | null> | null };
 
 export type CreatePinRuleMutationVariables = Exact<{
   personId: Scalars['UUID']['input'];
   targetPosition: Scalars['Int']['input'];
+  scopeTotal?: InputMaybe<Scalars['Int']['input']>;
 }>;
 
 
-export type CreatePinRuleMutation = { __typename?: 'Mutation', createPinRule?: { __typename?: 'PinRulePayload', id?: any | null, personId?: any | null, personName?: string | null, targetPosition: number, enabled: boolean, createdAt?: string | null, updatedAt?: string | null } | null };
+export type CreatePinRuleMutation = { __typename?: 'Mutation', createPinRule?: { __typename?: 'PinRulePayload', id?: any | null, personId?: any | null, personName?: string | null, targetPosition: number, targetIndex: number, effectiveIndex?: number | null, state: PinRuleState, enabled: boolean, createdAt?: string | null, updatedAt?: string | null } | null };
 
 export type UpdatePinRuleMutationVariables = Exact<{
   id: Scalars['UUID']['input'];
   targetPosition?: InputMaybe<Scalars['Int']['input']>;
   enabled?: InputMaybe<Scalars['Boolean']['input']>;
+  scopeTotal?: InputMaybe<Scalars['Int']['input']>;
 }>;
 
 
-export type UpdatePinRuleMutation = { __typename?: 'Mutation', updatePinRule?: { __typename?: 'PinRulePayload', id?: any | null, personId?: any | null, personName?: string | null, targetPosition: number, enabled: boolean, createdAt?: string | null, updatedAt?: string | null } | null };
+export type UpdatePinRuleMutation = { __typename?: 'Mutation', updatePinRule?: { __typename?: 'PinRulePayload', id?: any | null, personId?: any | null, personName?: string | null, targetPosition: number, targetIndex: number, effectiveIndex?: number | null, state: PinRuleState, enabled: boolean, createdAt?: string | null, updatedAt?: string | null } | null };
 
 export type DeletePinRuleMutationVariables = Exact<{
   id: Scalars['UUID']['input'];
@@ -237,6 +258,9 @@ export const PinRuleFieldsFragmentDoc = gql`
   personId
   personName
   targetPosition
+  targetIndex
+  effectiveIndex
+  state
   enabled
   createdAt
   updatedAt
@@ -326,22 +350,26 @@ export function useUpdatePersonMutation(options: VueApolloComposable.UseMutation
 }
 export type UpdatePersonMutationCompositionFunctionResult = VueApolloComposable.UseMutationReturn<UpdatePersonMutation, UpdatePersonMutationVariables>;
 export const PinRulesDocument = gql`
-    query PinRules {
-  pinRules {
+    query PinRules($scopeTotal: Int) {
+  pinRules(scopeTotal: $scopeTotal) {
     ...PinRuleFields
   }
 }
     ${PinRuleFieldsFragmentDoc}`;
-export function usePinRulesQuery(options: VueApolloComposable.UseQueryOptions<PinRulesQuery, PinRulesQueryVariables> | VueCompositionApi.Ref<VueApolloComposable.UseQueryOptions<PinRulesQuery, PinRulesQueryVariables>> | ReactiveFunction<VueApolloComposable.UseQueryOptions<PinRulesQuery, PinRulesQueryVariables>> = {}) {
-  return VueApolloComposable.useQuery<PinRulesQuery, PinRulesQueryVariables>(PinRulesDocument, {}, options);
+export function usePinRulesQuery(variables: PinRulesQueryVariables | VueCompositionApi.Ref<PinRulesQueryVariables> | ReactiveFunction<PinRulesQueryVariables> = {}, options: VueApolloComposable.UseQueryOptions<PinRulesQuery, PinRulesQueryVariables> | VueCompositionApi.Ref<VueApolloComposable.UseQueryOptions<PinRulesQuery, PinRulesQueryVariables>> | ReactiveFunction<VueApolloComposable.UseQueryOptions<PinRulesQuery, PinRulesQueryVariables>> = {}) {
+  return VueApolloComposable.useQuery<PinRulesQuery, PinRulesQueryVariables>(PinRulesDocument, variables, options);
 }
-export function usePinRulesLazyQuery(options: VueApolloComposable.UseQueryOptions<PinRulesQuery, PinRulesQueryVariables> | VueCompositionApi.Ref<VueApolloComposable.UseQueryOptions<PinRulesQuery, PinRulesQueryVariables>> | ReactiveFunction<VueApolloComposable.UseQueryOptions<PinRulesQuery, PinRulesQueryVariables>> = {}) {
-  return VueApolloComposable.useLazyQuery<PinRulesQuery, PinRulesQueryVariables>(PinRulesDocument, {}, options);
+export function usePinRulesLazyQuery(variables: PinRulesQueryVariables | VueCompositionApi.Ref<PinRulesQueryVariables> | ReactiveFunction<PinRulesQueryVariables> = {}, options: VueApolloComposable.UseQueryOptions<PinRulesQuery, PinRulesQueryVariables> | VueCompositionApi.Ref<VueApolloComposable.UseQueryOptions<PinRulesQuery, PinRulesQueryVariables>> | ReactiveFunction<VueApolloComposable.UseQueryOptions<PinRulesQuery, PinRulesQueryVariables>> = {}) {
+  return VueApolloComposable.useLazyQuery<PinRulesQuery, PinRulesQueryVariables>(PinRulesDocument, variables, options);
 }
 export type PinRulesQueryCompositionFunctionResult = VueApolloComposable.UseQueryReturn<PinRulesQuery, PinRulesQueryVariables>;
 export const CreatePinRuleDocument = gql`
-    mutation CreatePinRule($personId: UUID!, $targetPosition: Int!) {
-  createPinRule(personId: $personId, targetPosition: $targetPosition) {
+    mutation CreatePinRule($personId: UUID!, $targetPosition: Int!, $scopeTotal: Int) {
+  createPinRule(
+    personId: $personId
+    targetPosition: $targetPosition
+    scopeTotal: $scopeTotal
+  ) {
     ...PinRuleFields
   }
 }
@@ -351,8 +379,13 @@ export function useCreatePinRuleMutation(options: VueApolloComposable.UseMutatio
 }
 export type CreatePinRuleMutationCompositionFunctionResult = VueApolloComposable.UseMutationReturn<CreatePinRuleMutation, CreatePinRuleMutationVariables>;
 export const UpdatePinRuleDocument = gql`
-    mutation UpdatePinRule($id: UUID!, $targetPosition: Int, $enabled: Boolean) {
-  updatePinRule(id: $id, targetPosition: $targetPosition, enabled: $enabled) {
+    mutation UpdatePinRule($id: UUID!, $targetPosition: Int, $enabled: Boolean, $scopeTotal: Int) {
+  updatePinRule(
+    id: $id
+    targetPosition: $targetPosition
+    enabled: $enabled
+    scopeTotal: $scopeTotal
+  ) {
     ...PinRuleFields
   }
 }

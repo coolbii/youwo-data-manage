@@ -4,6 +4,7 @@ import io.leangen.graphql.annotations.GraphQLArgument;
 import io.leangen.graphql.annotations.GraphQLMutation;
 import io.leangen.graphql.annotations.GraphQLQuery;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,9 +21,14 @@ public class PinRulesGraphqlController {
   }
 
   @GraphQLQuery(name = "pinRules")
-  public List<PinRulePayload> pinRules() {
-    return pinRuleRepository.findAllWithPerson().stream()
-        .map(PinRulePayload::fromEntity)
+  public List<PinRulePayload> pinRules(
+      @GraphQLArgument(name = "scopeTotal") Integer scopeTotal) {
+    List<PinRuleEntity> rules = pinRuleRepository.findAllWithPerson();
+    Map<UUID, PinRulePlacementResolver.PinRulePlacement> placements =
+        resolvePlacements(rules, scopeTotal);
+
+    return rules.stream()
+        .map((rule) -> PinRulePayload.fromEntity(rule, placements.get(rule.getId())))
         .toList();
   }
 
@@ -30,7 +36,8 @@ public class PinRulesGraphqlController {
   @Transactional
   public PinRulePayload createPinRule(
       @GraphQLArgument(name = "personId") UUID personId,
-      @GraphQLArgument(name = "targetPosition") int targetPosition) {
+      @GraphQLArgument(name = "targetPosition") int targetPosition,
+      @GraphQLArgument(name = "scopeTotal") Integer scopeTotal) {
     if (targetPosition < 1) {
       throw new IllegalArgumentException("targetPosition must be >= 1");
     }
@@ -41,7 +48,8 @@ public class PinRulesGraphqlController {
     PinRuleEntity rule = new PinRuleEntity();
     rule.setPerson(person);
     rule.setTargetPosition(targetPosition);
-    return PinRulePayload.fromEntity(pinRuleRepository.save(rule));
+    PinRuleEntity saved = pinRuleRepository.save(rule);
+    return resolvePayload(saved.getId(), scopeTotal);
   }
 
   @GraphQLMutation(name = "updatePinRule")
@@ -49,7 +57,8 @@ public class PinRulesGraphqlController {
   public PinRulePayload updatePinRule(
       @GraphQLArgument(name = "id") UUID id,
       @GraphQLArgument(name = "targetPosition") Integer targetPosition,
-      @GraphQLArgument(name = "enabled") Boolean enabled) {
+      @GraphQLArgument(name = "enabled") Boolean enabled,
+      @GraphQLArgument(name = "scopeTotal") Integer scopeTotal) {
     PinRuleEntity rule =
         pinRuleRepository
             .findById(id)
@@ -63,7 +72,8 @@ public class PinRulesGraphqlController {
     if (enabled != null) {
       rule.setEnabled(enabled);
     }
-    return PinRulePayload.fromEntity(pinRuleRepository.save(rule));
+    PinRuleEntity saved = pinRuleRepository.save(rule);
+    return resolvePayload(saved.getId(), scopeTotal);
   }
 
   @GraphQLMutation(name = "deletePinRule")
@@ -74,5 +84,48 @@ public class PinRulesGraphqlController {
     }
     pinRuleRepository.deleteById(id);
     return true;
+  }
+
+  private PinRulePayload resolvePayload(UUID ruleId, Integer scopeTotal) {
+    // NOTE(YW-028): this mutation response still computes placement by loading all pin rules.
+    // It's acceptable at current scale and keeps returned state deterministic post-mutation.
+    List<PinRuleEntity> rules = pinRuleRepository.findAllWithPerson();
+    Map<UUID, PinRulePlacementResolver.PinRulePlacement> placements =
+        resolvePlacements(rules, scopeTotal);
+
+    return rules.stream()
+        .filter((rule) -> ruleId.equals(rule.getId()))
+        .findFirst()
+        .map((rule) -> PinRulePayload.fromEntity(rule, placements.get(rule.getId())))
+        .orElseThrow(() -> new IllegalStateException("Pin rule missing after save: " + ruleId));
+  }
+
+  private Map<UUID, PinRulePlacementResolver.PinRulePlacement> resolvePlacements(
+      List<PinRuleEntity> rules, Integer scopeTotal) {
+    int totalSize = resolvePlacementScopeTotal(scopeTotal);
+    List<PinRulePlacementResolver.PinRuleCandidate> candidates = rules.stream()
+        .map((rule) ->
+            new PinRulePlacementResolver.PinRuleCandidate(
+                rule.getId(),
+                rule.getTargetPosition(),
+                rule.isEnabled(),
+                rule.getCreatedAt()))
+        .toList();
+
+    return PinRulePlacementResolver.resolve(candidates, totalSize);
+  }
+
+  private int resolvePlacementScopeTotal(Integer scopeTotal) {
+    if (scopeTotal != null) {
+      if (scopeTotal < 0) {
+        throw new IllegalArgumentException("scopeTotal must be >= 0");
+      }
+      return scopeTotal;
+    }
+
+    // Fallback for callers that do not provide query context yet.
+    // This uses global people count and may differ from filtered list totals.
+    // YW-028 will make list-pipeline context the default placement scope.
+    return (int) Math.min(Integer.MAX_VALUE, personRepository.count());
   }
 }
