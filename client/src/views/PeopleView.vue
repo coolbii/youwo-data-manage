@@ -15,6 +15,7 @@ import Dropdown from '../components/overlay/Dropdown.vue';
 import Menu from '../components/overlay/Menu.vue';
 import type { MenuItem } from '../components/overlay/Menu.vue';
 import Modal from '../components/overlay/Modal.vue';
+import BottomSheet from '../components/overlay/BottomSheet.vue';
 import { useToast } from '../composables/useToast';
 import { useApolloClient } from '@vue/apollo-composable';
 import {
@@ -63,6 +64,7 @@ const listScrollEl = ref<HTMLElement | null>(null);
 const listViewportHeight = ref<number | null>(null);
 const didRestoreScroll = ref(false);
 const searchInput = ref(search.value);
+const isMobileViewport = ref(false);
 
 function buildListRouteQuery() {
   const query: Record<string, string> = {};
@@ -216,9 +218,11 @@ watch([search, sortBy, sortDirection], () => {
 });
 
 function updateListViewportHeight() {
-  if (!listScrollEl.value || typeof window === 'undefined') return;
+  if (typeof window === 'undefined') return;
+  isMobileViewport.value = window.innerWidth < 600;
+  if (!listScrollEl.value) return;
   const top = listScrollEl.value.getBoundingClientRect().top;
-  const bottomOffset = window.innerWidth < 600 ? 12 : 24;
+  const bottomOffset = isMobileViewport.value ? 12 : 24;
   listViewportHeight.value = Math.max(
     240,
     Math.floor(window.innerHeight - top - bottomOffset),
@@ -867,32 +871,116 @@ function formatDate(iso: string | null | undefined): string {
     </div>
   </div>
 
-  <Modal
+  <BottomSheet
+    v-if="isMobileViewport"
     :open="showDeleteModal"
     title="Delete person"
-    size="sm"
     @close="cancelDelete"
   >
+    <template #header>
+      <div class="delete-confirm__header">
+        <div class="delete-confirm__icon">
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 20 20"
+            fill="none"
+          >
+            <path
+              d="M10 6V10M10 14H10.01M3.072 16.5H16.928C18.048 16.5 18.748 15.278 18.188 14.31L11.26 2.31C10.7 1.342 9.3 1.342 8.74 2.31L1.812 14.31C1.252 15.278 1.952 16.5 3.072 16.5Z"
+              stroke="currentColor"
+              stroke-width="1.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+        </div>
+        <h2 class="delete-confirm__title">
+          Delete person
+        </h2>
+      </div>
+    </template>
+
     <p class="body-sm">
       Are you sure you want to delete
       <strong>{{ deleteTarget?.name }}</strong>? This action cannot be undone.
     </p>
 
     <template #footer>
-      <Button
-        variant="ghost"
-        :disabled="deleting"
-        @click="cancelDelete"
-      >
-        Cancel
-      </Button>
-      <Button
-        variant="danger"
-        :loading="deleting"
-        @click="executeDelete"
-      >
-        Delete
-      </Button>
+      <div class="delete-confirm__actions delete-confirm__actions--stacked">
+        <Button
+          variant="ghost"
+          :disabled="deleting"
+          block
+          @click="cancelDelete"
+        >
+          Cancel
+        </Button>
+        <Button
+          variant="danger"
+          :loading="deleting"
+          block
+          @click="executeDelete"
+        >
+          Delete
+        </Button>
+      </div>
+    </template>
+  </BottomSheet>
+
+  <Modal
+    v-else
+    :open="showDeleteModal"
+    title="Delete person"
+    size="sm"
+    @close="cancelDelete"
+  >
+    <template #header>
+      <div class="delete-confirm__header">
+        <div class="delete-confirm__icon">
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 20 20"
+            fill="none"
+          >
+            <path
+              d="M10 6V10M10 14H10.01M3.072 16.5H16.928C18.048 16.5 18.748 15.278 18.188 14.31L11.26 2.31C10.7 1.342 9.3 1.342 8.74 2.31L1.812 14.31C1.252 15.278 1.952 16.5 3.072 16.5Z"
+              stroke="currentColor"
+              stroke-width="1.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+        </div>
+        <h2 class="delete-confirm__title">
+          Delete person
+        </h2>
+      </div>
+    </template>
+
+    <p class="body-sm">
+      Are you sure you want to delete
+      <strong>{{ deleteTarget?.name }}</strong>? This action cannot be undone.
+    </p>
+
+    <template #footer>
+      <div class="delete-confirm__actions">
+        <Button
+          variant="ghost"
+          :disabled="deleting"
+          @click="cancelDelete"
+        >
+          Cancel
+        </Button>
+        <Button
+          variant="danger"
+          :loading="deleting"
+          @click="executeDelete"
+        >
+          Delete
+        </Button>
+      </div>
     </template>
   </Modal>
 </template>
@@ -1158,6 +1246,44 @@ function formatDate(iso: string | null | undefined): string {
 .pin-badge--empty {
   color: var(--color-border-strong);
   font-size: var(--font-size-md);
+}
+
+/* --- Delete confirmation --- */
+
+.delete-confirm__header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.delete-confirm__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  background: var(--color-danger-soft);
+  border-radius: var(--radius-sm);
+  color: var(--color-danger);
+}
+
+.delete-confirm__title {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--color-text);
+  line-height: 1.3;
+}
+
+.delete-confirm__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  width: 100%;
+}
+
+.delete-confirm__actions--stacked {
+  flex-direction: column-reverse;
 }
 
 @media (max-width: 599px) {
