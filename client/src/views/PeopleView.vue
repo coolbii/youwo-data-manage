@@ -1014,6 +1014,8 @@ function formatDate(iso: string | null | undefined): string {
     :open="showManageModal"
     :is-mobile="isMobileViewport"
     :pin-rules="pinRules"
+    :people="people"
+    :result-total-count="normalizedTotalCount"
     :on-refresh="refreshPinsAndList"
     @close="closeManage"
   />

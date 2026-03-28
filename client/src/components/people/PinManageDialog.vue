@@ -10,12 +10,14 @@ import Modal from '../overlay/Modal.vue';
 import BottomSheet from '../overlay/BottomSheet.vue';
 import { useToast } from '../../composables/useToast';
 import { usePinManage } from '../../composables/usePinManage';
-import type { PinRuleFieldsFragment } from '../../graphql/generated';
+import type { PinRuleFieldsFragment, PersonFieldsFragment } from '../../graphql/generated';
 
 const props = defineProps<{
   open: boolean;
   isMobile: boolean;
   pinRules: PinRuleFieldsFragment[];
+  people: PersonFieldsFragment[];
+  resultTotalCount: number;
   onRefresh: () => Promise<void>;
 }>();
 
@@ -43,6 +45,10 @@ const {
   onDialogOpen,
   onDialogClose,
   isPinRuleBusy,
+  pinRuleStateLabel,
+  pinRuleStateBadgeClass,
+  pinRuleStateDetailClass,
+  pinRuleStateDescription,
   pinRuleMenuItems,
   positionInputValue,
   onPositionInput,
@@ -54,6 +60,8 @@ const {
   submitAddRule,
 } = usePinManage({
   pinRules: toRef(props, 'pinRules'),
+  resultPeople: toRef(props, 'people'),
+  resultTotalCount: toRef(props, 'resultTotalCount'),
   onRefresh: props.onRefresh,
   notify: show,
 });
@@ -119,9 +127,12 @@ function closeManage() {
           </label>
 
           <div class="pin-manage__person">
-            <span class="pin-manage__name">{{ rule.personName }}</span>
-            <span :class="['pin-manage__state', rule.enabled ? 'pin-manage__state--enabled' : 'pin-manage__state--disabled']">
-              {{ rule.enabled ? 'Enabled' : 'Disabled' }}
+            <span class="pin-manage__name">{{ rule.personName || 'Unnamed' }}</span>
+            <span :class="['pin-manage__state', pinRuleStateBadgeClass(rule)]">
+              {{ pinRuleStateLabel(rule) }}
+            </span>
+            <span :class="['pin-manage__detail', pinRuleStateDetailClass(rule)]">
+              {{ pinRuleStateDescription(rule) }}
             </span>
           </div>
 
@@ -201,7 +212,7 @@ function closeManage() {
           v-else
           class="pin-manage__helper"
         >
-          If the target position already exists, later rules are shifted by the backend placement algorithm.
+          If the target position already exists, later rules are shifted by the backend placement algorithm. Pending means the person is not loaded in the current view yet.
         </p>
 
         <div :class="['pin-manage__add-actions', { 'pin-manage__add-actions--sticky': isMobile }]">
@@ -350,14 +361,54 @@ function closeManage() {
   text-transform: uppercase;
 }
 
-.pin-manage__state--enabled {
+.pin-manage__state--active {
   background: #dcfce7;
   color: #166534;
 }
 
-.pin-manage__state--disabled {
+.pin-manage__state--inactive {
   background: #f3f4f6;
   color: #4b5563;
+}
+
+.pin-manage__state--clamped {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.pin-manage__state--no-match {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.pin-manage__state--pending {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+
+.pin-manage__detail {
+  font-size: 0.75rem;
+  line-height: 1.35;
+}
+
+.pin-manage__detail--active {
+  color: var(--color-muted);
+}
+
+.pin-manage__detail--inactive {
+  color: #6b7280;
+}
+
+.pin-manage__detail--clamped {
+  color: #92400e;
+}
+
+.pin-manage__detail--no-match {
+  color: #b91c1c;
+}
+
+.pin-manage__detail--pending {
+  color: #4338ca;
 }
 
 .pin-manage__add {

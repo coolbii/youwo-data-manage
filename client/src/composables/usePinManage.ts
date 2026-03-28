@@ -22,8 +22,21 @@ type NotifyFn = (options: { variant?: ToastVariant; message: string }) => void;
 
 type UsePinManageOptions = {
   pinRules: Ref<PinRuleFieldsFragment[]>;
+  resultPeople: Ref<PersonFieldsFragment[]>;
+  resultTotalCount: Ref<number>;
   onRefresh: () => Promise<void>;
   notify: NotifyFn;
+};
+
+type PinRuleState = 'active' | 'inactive' | 'clamped' | 'no_match' | 'pending';
+
+type PinRuleStateReason = 'not_in_result' | 'not_loaded' | 'overflow' | null;
+
+type PinRuleStateInfo = {
+  state: PinRuleState;
+  effectivePosition: number | null;
+  shiftedByConflict: boolean;
+  reason: PinRuleStateReason;
 };
 
 function ruleKey(rule: PinRuleFieldsFragment): string {
@@ -36,7 +49,66 @@ function parsePositiveInt(raw: string): number | null {
   return parsed;
 }
 
-export function usePinManage({ pinRules, onRefresh, notify }: UsePinManageOptions) {
+function parseCreatedAtMs(rule: PinRuleFieldsFragment): number {
+  if (!rule.createdAt) return Number.MAX_SAFE_INTEGER;
+  const createdAtMs = Date.parse(rule.createdAt);
+  return Number.isFinite(createdAtMs) ? createdAtMs : Number.MAX_SAFE_INTEGER;
+}
+
+function comparePlacementPriority(a: PinRuleFieldsFragment, b: PinRuleFieldsFragment): number {
+  if (a.targetPosition !== b.targetPosition) {
+    return a.targetPosition - b.targetPosition;
+  }
+  const createdAtGap = parseCreatedAtMs(a) - parseCreatedAtMs(b);
+  if (createdAtGap !== 0) return createdAtGap;
+  return ruleKey(a).localeCompare(ruleKey(b));
+}
+
+function normalizeCount(value: number): number {
+  if (!Number.isFinite(value) || value < 0) return 0;
+  return Math.floor(value);
+}
+
+const stateLabelMap: Record<PinRuleState, string> = {
+  active: 'Active',
+  inactive: 'Inactive',
+  clamped: 'Clamped',
+  no_match: 'No match',
+  pending: 'Pending',
+};
+
+const stateBadgeClassMap: Record<PinRuleState, string> = {
+  active: 'pin-manage__state--active',
+  inactive: 'pin-manage__state--inactive',
+  clamped: 'pin-manage__state--clamped',
+  no_match: 'pin-manage__state--no-match',
+  pending: 'pin-manage__state--pending',
+};
+
+const stateDetailClassMap: Record<PinRuleState, string> = {
+  active: 'pin-manage__detail--active',
+  inactive: 'pin-manage__detail--inactive',
+  clamped: 'pin-manage__detail--clamped',
+  no_match: 'pin-manage__detail--no-match',
+  pending: 'pin-manage__detail--pending',
+};
+
+function fallbackRuleState(rule: PinRuleFieldsFragment): PinRuleStateInfo {
+  return {
+    state: rule.enabled ? 'no_match' : 'inactive',
+    effectivePosition: null,
+    shiftedByConflict: false,
+    reason: rule.enabled ? 'not_in_result' : null,
+  };
+}
+
+export function usePinManage({
+  pinRules,
+  resultPeople,
+  resultTotalCount,
+  onRefresh,
+  notify,
+}: UsePinManageOptions) {
   const { mutate: doCreatePin } = useCreatePinRuleMutation({});
   const { mutate: doUpdatePin } = useUpdatePinRuleMutation({});
   const { mutate: doDeletePin } = useDeletePinRuleMutation({});
@@ -58,6 +130,111 @@ export function usePinManage({ pinRules, onRefresh, notify }: UsePinManageOption
   const sortedPinRules = computed(() =>
     [...pinRules.value].sort((a, b) => a.targetPosition - b.targetPosition),
   );
+
+  const normalizedResultTotal = computed(() => normalizeCount(resultTotalCount.value));
+  const loadedResultCount = computed(() => resultPeople.value.length);
+  const isResultFullyLoaded = computed(
+    () => loadedResultCount.value >= normalizedResultTotal.value,
+  );
+  const currentResultPersonIds = computed(
+    () =>
+      new Set(
+        resultPeople.value
+          .map((person) => (person.id ? String(person.id) : ''))
+          .filter((personId) => personId.length > 0),
+      ),
+  );
+
+  const pinRuleStateMap = computed(() => {
+    const map = new Map<string, PinRuleStateInfo>();
+    const eligibleRules: PinRuleFieldsFragment[] = [];
+
+    for (const rule of sortedPinRules.value) {
+      const id = ruleKey(rule);
+      if (!id) continue;
+
+      if (!rule.enabled) {
+        map.set(id, {
+          state: 'inactive',
+          effectivePosition: null,
+          shiftedByConflict: false,
+          reason: null,
+        });
+        continue;
+      }
+
+      const personId = rule.personId ? String(rule.personId) : '';
+      const hasPersonInLoadedResult =
+        personId.length > 0 && currentResultPersonIds.value.has(personId);
+
+      if (!hasPersonInLoadedResult && normalizedResultTotal.value < 1) {
+        map.set(id, {
+          state: 'no_match',
+          effectivePosition: null,
+          shiftedByConflict: false,
+          reason: 'not_in_result',
+        });
+        continue;
+      }
+
+      if (hasPersonInLoadedResult) {
+        eligibleRules.push(rule);
+        continue;
+      }
+
+      if (personId.length > 0 && !isResultFullyLoaded.value) {
+        map.set(id, {
+          state: 'pending',
+          effectivePosition: null,
+          shiftedByConflict: false,
+          reason: 'not_loaded',
+        });
+        continue;
+      }
+
+      map.set(id, {
+        state: 'no_match',
+        effectivePosition: null,
+        shiftedByConflict: false,
+        reason: 'not_in_result',
+      });
+    }
+
+    const occupiedPositions = new Set<number>();
+    for (const rule of [...eligibleRules].sort(comparePlacementPriority)) {
+      const id = ruleKey(rule);
+      if (!id) continue;
+
+      const total = normalizedResultTotal.value;
+      const clampedTarget = Math.min(Math.max(rule.targetPosition, 1), total);
+      let effectivePosition = clampedTarget;
+
+      while (occupiedPositions.has(effectivePosition) && effectivePosition < total) {
+        effectivePosition += 1;
+      }
+
+      if (occupiedPositions.has(effectivePosition)) {
+        map.set(id, {
+          state: 'no_match',
+          effectivePosition: null,
+          shiftedByConflict: false,
+          reason: 'overflow',
+        });
+        continue;
+      }
+
+      occupiedPositions.add(effectivePosition);
+
+      map.set(id, {
+        state: rule.targetPosition > total ? 'clamped' : 'active',
+        effectivePosition,
+        shiftedByConflict: effectivePosition !== clampedTarget,
+        reason: null,
+      });
+    }
+
+    return map;
+  });
 
   const nextPinTargetPosition = computed(
     () => pinRules.value.reduce((max, rule) => Math.max(max, rule.targetPosition), 0) + 1,
@@ -143,6 +320,51 @@ export function usePinManage({ pinRules, onRefresh, notify }: UsePinManageOption
     const id = ruleKey(rule);
     if (!id) return true;
     return pinTogglingIds.value.has(id) || pinDeletingIds.value.has(id);
+  }
+
+  function pinRuleStateInfo(rule: PinRuleFieldsFragment): PinRuleStateInfo {
+    const id = ruleKey(rule);
+    if (!id) return fallbackRuleState(rule);
+    return pinRuleStateMap.value.get(id) ?? fallbackRuleState(rule);
+  }
+
+  function pinRuleStateLabel(rule: PinRuleFieldsFragment): string {
+    return stateLabelMap[pinRuleStateInfo(rule).state];
+  }
+
+  function pinRuleStateBadgeClass(rule: PinRuleFieldsFragment): string {
+    return stateBadgeClassMap[pinRuleStateInfo(rule).state];
+  }
+
+  function pinRuleStateDetailClass(rule: PinRuleFieldsFragment): string {
+    return stateDetailClassMap[pinRuleStateInfo(rule).state];
+  }
+
+  function pinRuleStateDescription(rule: PinRuleFieldsFragment): string {
+    const info = pinRuleStateInfo(rule);
+    const targetSummary = `Target: pos ${rule.targetPosition}`;
+
+    if (info.state === 'inactive') {
+      return `${targetSummary} · Rule disabled`;
+    }
+    if (info.state === 'pending') {
+      return `${targetSummary} · Person not yet loaded in view (scroll to load more)`;
+    }
+    if (info.state === 'no_match') {
+      if (info.reason === 'overflow') {
+        return `${targetSummary} · No available slot after higher-priority rules`;
+      }
+      return `${targetSummary} · Not matched in current result`;
+    }
+
+    const effectivePosition = info.effectivePosition ?? rule.targetPosition;
+    if (info.state === 'clamped') {
+      return `${targetSummary} · Effective: pos ${effectivePosition} (clamped to result end)`;
+    }
+    if (info.shiftedByConflict) {
+      return `${targetSummary} · Effective: pos ${effectivePosition} (shifted by conflict)`;
+    }
+    return `${targetSummary} · Effective: pos ${effectivePosition}`;
   }
 
   function pinRuleMenuItems(rule: PinRuleFieldsFragment): PinRuleActionMenuItem[] {
@@ -324,6 +546,10 @@ export function usePinManage({ pinRules, onRefresh, notify }: UsePinManageOption
     onDialogOpen,
     onDialogClose,
     isPinRuleBusy,
+    pinRuleStateLabel,
+    pinRuleStateBadgeClass,
+    pinRuleStateDetailClass,
+    pinRuleStateDescription,
     pinRuleMenuItems,
     positionInputValue,
     onPositionInput,
