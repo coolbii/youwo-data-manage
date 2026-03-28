@@ -384,9 +384,6 @@ const pinRules = computed(
 
 const activePinCount = computed(() => pinRules.value.filter((r) => r.enabled).length);
 const inactivePinCount = computed(() => pinRules.value.filter((r) => !r.enabled).length);
-const nextPinTargetPosition = computed(
-  () => pinRules.value.reduce((max, rule) => Math.max(max, rule.targetPosition), 0) + 1,
-);
 
 watch(
   [() => pinRules.value.length, activeSearchTerm],
@@ -397,7 +394,17 @@ watch(
   { flush: 'post' },
 );
 
-const pinMap = computed(() => {
+const pinRuleByPersonId = computed(() => {
+  const map = new Map<string, PinRuleFieldsFragment>();
+  for (const rule of pinRules.value) {
+    if (rule.personId) {
+      map.set(rule.personId, rule);
+    }
+  }
+  return map;
+});
+
+const activePinMap = computed(() => {
   const map = new Map<string, PinRuleFieldsFragment>();
   for (const rule of pinRules.value) {
     if (rule.enabled && rule.personId) {
@@ -409,7 +416,12 @@ const pinMap = computed(() => {
 
 function personPin(person: PersonFieldsFragment): PinRuleFieldsFragment | undefined {
   if (!person.id) return undefined;
-  return pinMap.value.get(person.id);
+  return activePinMap.value.get(person.id);
+}
+
+function personPinRule(person: PersonFieldsFragment): PinRuleFieldsFragment | undefined {
+  if (!person.id) return undefined;
+  return pinRuleByPersonId.value.get(person.id);
 }
 
 async function refreshPinsAndList() {
@@ -418,14 +430,23 @@ async function refreshPinsAndList() {
 
 async function pinPerson(person: PersonFieldsFragment) {
   if (!person.id) return;
-  const targetPosition = nextPinTargetPosition.value;
+  const existingRule = personPinRule(person);
+  if (existingRule) {
+    show({
+      variant: 'info',
+      message: `${person.name} already has a pin rule at #${existingRule.targetPosition}`,
+    });
+    return;
+  }
+
+  const targetPosition = 1;
   try {
     await doCreatePin({
       personId: person.id,
       targetPosition,
       scopeTotal: normalizedTotalCount.value,
     });
-    show({ variant: 'success', message: `Pinned ${person.name} to position ${targetPosition}` });
+    show({ variant: 'success', message: `Pinned ${person.name} to top` });
     await refreshPinsAndList();
   } catch (err) {
     show({
@@ -495,11 +516,20 @@ const columns: TableColumn[] = [
 
 const { show } = useToast();
 
-const rowMenuItems: MenuItem[] = [
-  { key: 'edit', label: 'Edit person' },
-  { key: 'pin', label: 'Pin to top' },
-  { key: 'delete', label: 'Delete person', danger: true },
-];
+function rowMenuItemsFor(row: PersonFieldsFragment): MenuItem[] {
+  const existingRule = personPinRule(row);
+  return [
+    { key: 'edit', label: 'Edit person' },
+    {
+      key: 'pin',
+      label: existingRule
+        ? `Pinned at #${existingRule.targetPosition}`
+        : 'Pin to top',
+      disabled: !!existingRule,
+    },
+    { key: 'delete', label: 'Delete person', danger: true },
+  ];
+}
 
 function onRowAction(
   row: PersonFieldsFragment,
@@ -865,7 +895,7 @@ function formatDate(iso: string | null | undefined): string {
                 </template>
                 <template #default="{ close }">
                   <Menu
-                    :items="rowMenuItems"
+                    :items="rowMenuItemsFor(row as unknown as PersonFieldsFragment)"
                     @select="
                       (key) =>
                         onRowAction(
@@ -922,7 +952,7 @@ function formatDate(iso: string | null | undefined): string {
                   </template>
                   <template #default="{ close }">
                     <Menu
-                      :items="rowMenuItems"
+                      :items="rowMenuItemsFor(person)"
                       @select="(key) => onRowAction(person, key, close)"
                     />
                   </template>
