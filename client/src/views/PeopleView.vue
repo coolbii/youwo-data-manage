@@ -18,6 +18,7 @@ import type { MenuItem } from '../components/overlay/Menu.vue';
 import Modal from '../components/overlay/Modal.vue';
 import BottomSheet from '../components/overlay/BottomSheet.vue';
 import { useToast } from '../composables/useToast';
+import { useVirtualScroll } from '../composables/useVirtualScroll';
 import { useApolloClient } from '@vue/apollo-composable';
 import {
   usePeopleListQuery,
@@ -34,6 +35,10 @@ const PAGE_SIZE = 10;
 const LIST_SCROLL_STORAGE_KEY = 'people-view-scroll';
 const VALID_SORT_FIELDS = new Set<string>(Object.values(PeopleSortField));
 const VALID_SORT_DIRECTIONS = new Set<string>(Object.values(SortDirection));
+const VIRTUAL_OVERSCAN = 6;
+const TABLE_ROW_ESTIMATED_HEIGHT = 52;
+const TABLE_HEADER_ESTIMATED_HEIGHT = 48;
+const CARD_ROW_ESTIMATED_HEIGHT = 112;
 
 const route = useRoute();
 const router = useRouter();
@@ -119,6 +124,26 @@ const people = computed(
 const pageInfo = computed(() => result.value?.peopleList?.pageInfo);
 const totalCount = computed(() => result.value?.peopleList?.totalCount ?? 0);
 const loadedCount = computed(() => people.value.length);
+const virtualItemHeight = computed(() =>
+  isMobileViewport.value ? CARD_ROW_ESTIMATED_HEIGHT : TABLE_ROW_ESTIMATED_HEIGHT,
+);
+const virtualAnchorOffset = computed(() =>
+  isMobileViewport.value ? 0 : TABLE_HEADER_ESTIMATED_HEIGHT,
+);
+const {
+  visibleItems: virtualizedPeople,
+  padTop: virtualPadTop,
+  padBottom: virtualPadBottom,
+  updateMetrics: updateVirtualMetrics,
+  onScroll: onVirtualScroll,
+} = useVirtualScroll<PersonFieldsFragment>({
+  items: people,
+  scrollEl: listScrollEl,
+  itemHeight: virtualItemHeight,
+  anchorOffset: virtualAnchorOffset,
+  overscan: VIRTUAL_OVERSCAN,
+  initialVisibleCount: PAGE_SIZE + VIRTUAL_OVERSCAN * 2,
+});
 const normalizedTotalCount = computed(() => {
   const numeric =
     typeof totalCount.value === 'number'
@@ -228,6 +253,7 @@ function updateListViewportHeight() {
     240,
     Math.floor(window.innerHeight - top - bottomOffset),
   );
+  updateVirtualMetrics();
 }
 
 function saveListScrollSnapshot() {
@@ -265,6 +291,7 @@ function restoreListScrollSnapshot() {
 
     listScrollEl.value.scrollTop =
       typeof snapshot.scrollTop === 'number' ? snapshot.scrollTop : 0;
+    updateVirtualMetrics();
     didRestoreScroll.value = true;
     window.sessionStorage.removeItem(LIST_SCROLL_STORAGE_KEY);
   } catch {
@@ -278,6 +305,7 @@ onMounted(() => {
   requestAnimationFrame(() => {
     updateListViewportHeight();
     restoreListScrollSnapshot();
+    updateVirtualMetrics();
   });
 });
 
@@ -291,6 +319,7 @@ watch(
   async () => {
     await nextTick();
     restoreListScrollSnapshot();
+    updateVirtualMetrics();
   },
   { flush: 'post' },
 );
@@ -750,6 +779,7 @@ function formatDate(iso: string | null | undefined): string {
           ? { maxHeight: `${listViewportHeight}px` }
           : undefined
       "
+      @scroll.passive="onVirtualScroll"
     >
       <!-- Empty states -->
       <template v-if="showEmptyState">
@@ -792,7 +822,9 @@ function formatDate(iso: string | null | undefined): string {
         <div class="people-view__table">
           <DataTable
             :columns="columns"
-            :rows="(people as unknown as Record<string, unknown>[])"
+            :rows="(virtualizedPeople as unknown as Record<string, unknown>[])"
+            :virtual-pad-top="virtualPadTop"
+            :virtual-pad-bottom="virtualPadBottom"
             row-key="id"
           >
             <template #cell-pin="{ row }">
@@ -851,45 +883,58 @@ function formatDate(iso: string | null | undefined): string {
 
         <!-- Mobile cards -->
         <div class="people-view__cards">
-          <CardRow
-            v-for="person in people"
+          <div
+            v-if="virtualPadTop > 0"
+            class="people-view__virtual-spacer"
+            :style="{ height: `${virtualPadTop}px` }"
+          />
+          <div
+            v-for="person in virtualizedPeople"
             :key="person.id"
+            class="people-view__card-item"
           >
-            <template #primary>
-              <span class="people-view__card-name">
-                <span
-                  v-if="personPin(person)"
-                  class="pin-badge pin-badge--inline"
-                >{{ personPin(person)!.targetPosition }}</span>
-                {{ person.name }}
-              </span>
-            </template>
-            <template #secondary>
-              {{ person.position }} · {{ person.location }}
-            </template>
-            <template #meta>
-              <span v-if="person.age">{{ person.age }} yrs</span>
-            </template>
-            <template #actions>
-              <Dropdown align="end">
-                <template #trigger>
-                  <IconButton
-                    aria-label="Row actions"
-                    size="sm"
-                    variant="ghost"
-                  >
-                    ···
-                  </IconButton>
-                </template>
-                <template #default="{ close }">
-                  <Menu
-                    :items="rowMenuItems"
-                    @select="(key) => onRowAction(person, key, close)"
-                  />
-                </template>
-              </Dropdown>
-            </template>
-          </CardRow>
+            <CardRow>
+              <template #primary>
+                <span class="people-view__card-name">
+                  <span
+                    v-if="personPin(person)"
+                    class="pin-badge pin-badge--inline"
+                  >{{ personPin(person)!.targetPosition }}</span>
+                  {{ person.name }}
+                </span>
+              </template>
+              <template #secondary>
+                {{ person.position }} · {{ person.location }}
+              </template>
+              <template #meta>
+                <span v-if="person.age">{{ person.age }} yrs</span>
+              </template>
+              <template #actions>
+                <Dropdown align="end">
+                  <template #trigger>
+                    <IconButton
+                      aria-label="Row actions"
+                      size="sm"
+                      variant="ghost"
+                    >
+                      ···
+                    </IconButton>
+                  </template>
+                  <template #default="{ close }">
+                    <Menu
+                      :items="rowMenuItems"
+                      @select="(key) => onRowAction(person, key, close)"
+                    />
+                  </template>
+                </Dropdown>
+              </template>
+            </CardRow>
+          </div>
+          <div
+            v-if="virtualPadBottom > 0"
+            class="people-view__virtual-spacer"
+            :style="{ height: `${virtualPadBottom}px` }"
+          />
         </div>
 
         <InfiniteFooter
@@ -1056,6 +1101,15 @@ function formatDate(iso: string | null | undefined): string {
 
 .people-view__cards {
   display: none;
+}
+
+.people-view__virtual-spacer {
+  width: 100%;
+  pointer-events: none;
+}
+
+.people-view__card-item + .people-view__card-item {
+  margin-top: var(--space-2);
 }
 
 .people-view__card-name {
@@ -1349,9 +1403,7 @@ function formatDate(iso: string | null | undefined): string {
   }
 
   .people-view__cards {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-2);
+    display: block;
   }
 
 }

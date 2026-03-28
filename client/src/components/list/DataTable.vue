@@ -18,10 +18,14 @@ const props = withDefaults(
     rows: Record<string, unknown>[];
     rowKey?: string;
     sort?: SortState;
+    virtualPadTop?: number;
+    virtualPadBottom?: number;
   }>(),
   {
     rowKey: 'id',
     sort: null,
+    virtualPadTop: 0,
+    virtualPadBottom: 0,
   },
 );
 
@@ -92,6 +96,18 @@ function sortIcon(col: TableColumn): string | null {
 
       <tbody>
         <tr
+          v-if="virtualPadTop > 0"
+          class="data-table__spacer-row"
+          aria-hidden="true"
+        >
+          <td
+            class="data-table__spacer-cell"
+            :colspan="columns.length + ($slots['row-actions'] ? 1 : 0)"
+            :style="{ height: `${virtualPadTop}px` }"
+          />
+        </tr>
+
+        <tr
           v-for="row in rows"
           :key="(row[rowKey] as string)"
           class="data-table__row"
@@ -121,6 +137,18 @@ function sortIcon(col: TableColumn): string | null {
               :row="row"
             />
           </td>
+        </tr>
+
+        <tr
+          v-if="virtualPadBottom > 0"
+          class="data-table__spacer-row"
+          aria-hidden="true"
+        >
+          <td
+            class="data-table__spacer-cell"
+            :colspan="columns.length + ($slots['row-actions'] ? 1 : 0)"
+            :style="{ height: `${virtualPadBottom}px` }"
+          />
         </tr>
       </tbody>
     </table>
@@ -236,6 +264,15 @@ function sortIcon(col: TableColumn): string | null {
 .data-table__td--actions {
   text-align: end;
   white-space: nowrap;
+}
+
+.data-table__spacer-row {
+  pointer-events: none;
+}
+
+.data-table__spacer-cell {
+  padding: 0;
+  border: 0;
 }
 
 .data-table__empty {
