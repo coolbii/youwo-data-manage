@@ -11,6 +11,7 @@ import CardRow from '../components/list/CardRow.vue';
 import StatusBadge from '../components/list/StatusBadge.vue';
 import InfiniteFooter from '../components/list/InfiniteFooter.vue';
 import EmptyState from '../components/feedback/EmptyState.vue';
+import PinManageDialog from '../components/people/PinManageDialog.vue';
 import Dropdown from '../components/overlay/Dropdown.vue';
 import Menu from '../components/overlay/Menu.vue';
 import type { MenuItem } from '../components/overlay/Menu.vue';
@@ -352,6 +353,9 @@ const pinRules = computed(
 
 const activePinCount = computed(() => pinRules.value.filter((r) => r.enabled).length);
 const inactivePinCount = computed(() => pinRules.value.filter((r) => !r.enabled).length);
+const nextPinTargetPosition = computed(
+  () => pinRules.value.reduce((max, rule) => Math.max(max, rule.targetPosition), 0) + 1,
+);
 
 watch(
   [() => pinRules.value.length, activeSearchTerm],
@@ -377,19 +381,33 @@ function personPin(person: PersonFieldsFragment): PinRuleFieldsFragment | undefi
   return pinMap.value.get(person.id);
 }
 
+async function refreshPinsAndList() {
+  await Promise.all([refetchPins(), refetch()]);
+}
+
 async function pinPerson(person: PersonFieldsFragment) {
-  const maxPos = pinRules.value.reduce((max, r) => Math.max(max, r.targetPosition), 0);
+  if (!person.id) return;
+  const targetPosition = nextPinTargetPosition.value;
   try {
-    await doCreatePin({ personId: person.id, targetPosition: maxPos + 1 });
-    show({ variant: 'success', message: `Pinned ${person.name} to position ${maxPos + 1}` });
-    refetchPins();
-    refetch();
+    await doCreatePin({ personId: person.id, targetPosition });
+    show({ variant: 'success', message: `Pinned ${person.name} to position ${targetPosition}` });
+    await refreshPinsAndList();
   } catch (err) {
     show({
       variant: 'error',
       message: err instanceof Error ? err.message : 'Pin failed',
     });
   }
+}
+
+const showManageModal = ref(false);
+
+function openManage() {
+  showManageModal.value = true;
+}
+
+function closeManage() {
+  showManageModal.value = false;
 }
 
 // --- Sort ---
@@ -680,10 +698,7 @@ function formatDate(iso: string | null | undefined): string {
     </Toolbar>
 
     <!-- Pin panel -->
-    <div
-      v-if="pinRules.length > 0"
-      class="pin-panel"
-    >
+    <div class="pin-panel">
       <div class="pin-panel__icon-wrap">
         <svg
           width="18"
@@ -702,10 +717,21 @@ function formatDate(iso: string | null | undefined): string {
       </div>
       <div class="pin-panel__content">
         <span class="pin-panel__title">
-          Pinned Rules ({{ activePinCount }} active<span v-if="inactivePinCount > 0">, {{ inactivePinCount }} inactive</span>)
+          <template v-if="pinRules.length > 0">
+            Pinned Rules ({{ activePinCount }} active<span v-if="inactivePinCount > 0">, {{ inactivePinCount }} inactive</span>)
+          </template>
+          <template v-else>
+            No pin rules yet
+          </template>
         </span>
+        <p class="pin-panel__hint">
+          Configure pinned placement and rule status.
+        </p>
       </div>
-      <button class="pin-panel__manage">
+      <button
+        class="pin-panel__manage"
+        @click="openManage"
+      >
         Manage
       </button>
     </div>
@@ -983,6 +1009,14 @@ function formatDate(iso: string | null | undefined): string {
       </div>
     </template>
   </Modal>
+
+  <PinManageDialog
+    :open="showManageModal"
+    :is-mobile="isMobileViewport"
+    :pin-rules="pinRules"
+    :on-refresh="refreshPinsAndList"
+    @close="closeManage"
+  />
 </template>
 
 <style scoped>
@@ -1197,9 +1231,16 @@ function formatDate(iso: string | null | undefined): string {
 }
 
 .pin-panel__title {
+  display: block;
   font-size: var(--font-size-md);
   font-weight: 500;
   color: #3730a3;
+}
+
+.pin-panel__hint {
+  margin: var(--space-1) 0 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-accent-strong);
 }
 
 .pin-panel__manage {
@@ -1304,5 +1345,6 @@ function formatDate(iso: string | null | undefined): string {
     flex-direction: column;
     gap: var(--space-2);
   }
+
 }
 </style>
