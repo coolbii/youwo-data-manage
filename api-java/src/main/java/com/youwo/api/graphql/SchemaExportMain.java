@@ -1,5 +1,6 @@
 package com.youwo.api.graphql;
 
+import com.youwo.api.auth.AuthGraphqlController;
 import com.youwo.api.people.PeopleGraphqlController;
 import com.youwo.api.people.PinRulesGraphqlController;
 import graphql.schema.GraphQLSchema;
@@ -20,6 +21,7 @@ public final class SchemaExportMain {
     String output = args.length > 0 ? args[0] : DEFAULT_OUTPUT;
 
     GraphQLSchema schema = new GraphQLSchemaGenerator()
+        .withOperationsFromType(AuthGraphqlController.class)
         .withOperationsFromType(PeopleGraphqlController.class)
         .withOperationsFromType(PinRulesGraphqlController.class)
         .generate();

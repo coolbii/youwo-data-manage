@@ -1,8 +1,11 @@
 package com.youwo.api.people;
 
+import com.youwo.api.auth.AuthSessionService;
+import com.youwo.api.graphql.GraphqlRequestContext;
 import io.leangen.graphql.annotations.GraphQLArgument;
 import io.leangen.graphql.annotations.GraphQLMutation;
 import io.leangen.graphql.annotations.GraphQLQuery;
+import io.leangen.graphql.annotations.GraphQLRootContext;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -13,16 +16,23 @@ import org.springframework.transaction.annotation.Transactional;
 public class PinRulesGraphqlController {
   private final PinRuleRepository pinRuleRepository;
   private final PersonRepository personRepository;
+  private final AuthSessionService authSessionService;
 
   public PinRulesGraphqlController(
-      PinRuleRepository pinRuleRepository, PersonRepository personRepository) {
+      PinRuleRepository pinRuleRepository,
+      PersonRepository personRepository,
+      AuthSessionService authSessionService) {
     this.pinRuleRepository = pinRuleRepository;
     this.personRepository = personRepository;
+    this.authSessionService = authSessionService;
   }
 
   @GraphQLQuery(name = "pinRules")
   public List<PinRulePayload> pinRules(
-      @GraphQLArgument(name = "scopeTotal") Integer scopeTotal) {
+      @GraphQLArgument(name = "scopeTotal") Integer scopeTotal,
+      @GraphQLRootContext("") GraphqlRequestContext requestContext) {
+    requireAuthentication(requestContext);
+
     List<PinRuleEntity> rules = pinRuleRepository.findAllWithPerson();
     Map<UUID, PinRulePlacementResolver.PinRulePlacement> placements =
         resolvePlacements(rules, scopeTotal);
@@ -37,7 +47,10 @@ public class PinRulesGraphqlController {
   public PinRulePayload createPinRule(
       @GraphQLArgument(name = "personId") UUID personId,
       @GraphQLArgument(name = "targetPosition") int targetPosition,
-      @GraphQLArgument(name = "scopeTotal") Integer scopeTotal) {
+      @GraphQLArgument(name = "scopeTotal") Integer scopeTotal,
+      @GraphQLRootContext("") GraphqlRequestContext requestContext) {
+    requireAuthentication(requestContext);
+
     if (targetPosition < 1) {
       throw new IllegalArgumentException("targetPosition must be >= 1");
     }
@@ -58,7 +71,10 @@ public class PinRulesGraphqlController {
       @GraphQLArgument(name = "id") UUID id,
       @GraphQLArgument(name = "targetPosition") Integer targetPosition,
       @GraphQLArgument(name = "enabled") Boolean enabled,
-      @GraphQLArgument(name = "scopeTotal") Integer scopeTotal) {
+      @GraphQLArgument(name = "scopeTotal") Integer scopeTotal,
+      @GraphQLRootContext("") GraphqlRequestContext requestContext) {
+    requireAuthentication(requestContext);
+
     PinRuleEntity rule =
         pinRuleRepository
             .findById(id)
@@ -78,7 +94,11 @@ public class PinRulesGraphqlController {
 
   @GraphQLMutation(name = "deletePinRule")
   @Transactional
-  public boolean deletePinRule(@GraphQLArgument(name = "id") UUID id) {
+  public boolean deletePinRule(
+      @GraphQLArgument(name = "id") UUID id,
+      @GraphQLRootContext("") GraphqlRequestContext requestContext) {
+    requireAuthentication(requestContext);
+
     if (!pinRuleRepository.existsById(id)) {
       throw new IllegalArgumentException("Pin rule not found: " + id);
     }
@@ -127,5 +147,9 @@ public class PinRulesGraphqlController {
     // This uses global people count and may differ from filtered list totals.
     // YW-028 will make list-pipeline context the default placement scope.
     return (int) Math.min(Integer.MAX_VALUE, personRepository.count());
+  }
+
+  private void requireAuthentication(GraphqlRequestContext requestContext) {
+    authSessionService.requireAuthenticatedUser(requestContext);
   }
 }

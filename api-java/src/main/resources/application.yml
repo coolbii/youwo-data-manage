@@ -20,6 +20,12 @@ spring:
     path: ${GRAPHQL_PATH:/api/graphql}
 
 app:
+  auth:
+    jwt-secret: ${APP_AUTH_JWT_SECRET:youwo-homework-dev-secret-youwo-homework}
+    refresh-token-ttl-seconds: ${APP_AUTH_REFRESH_TOKEN_TTL_SECONDS:1209600}
+    session-cookie-name: ${APP_AUTH_SESSION_COOKIE_NAME:youwo.sid}
+    csrf-cookie-name: ${APP_AUTH_CSRF_COOKIE_NAME:youwo.csrf}
+    cookie-secure: ${APP_AUTH_COOKIE_SECURE:false}
   graphql:
     path: ${GRAPHQL_PATH:/api/graphql}
 
