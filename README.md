@@ -245,6 +245,7 @@ Workflows:
 
 - `.github/workflows/ci.yml`
 - `.github/workflows/cd-ec2.yml`
+- `.github/workflows/bulk-import-people.yml` (manual only)
 
 `ci.yml` runs:
 
@@ -284,3 +285,11 @@ Required GitHub repository secrets:
 - `PROD_SPRING_DATASOURCE_PASSWORD`
 - `GHCR_USERNAME`
 - `GHCR_PULL_TOKEN` (PAT with `read:packages`)
+
+Manual bulk import workflow (`bulk-import-people.yml`):
+
+- Trigger from Actions with:
+  - `csv_path`: CSV path in repository (for example `db/people_import_template.csv`)
+  - `ec2_import_dir`: temp path on EC2 (default `/opt/youwo-homework/import`)
+- Workflow uploads `db/import_people_batch.sql` + CSV to EC2, then imports to RDS.
+- Current scope is `people` import only.
