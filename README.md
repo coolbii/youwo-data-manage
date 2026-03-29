@@ -113,6 +113,30 @@ Local URLs:
 - GraphQL: `http://localhost:3000/api/graphql`
 - GraphQL Playground (Apollo Sandbox): `http://localhost:3000/api/graphql/playground`
 
+## Auth/session notes
+
+- Browser does not store `accessToken`/`refreshToken` anymore.
+- Backend sets:
+  - session cookie (HttpOnly, SameSite=Strict)
+  - CSRF cookie (SameSite=Strict)
+- Frontend sends `X-CSRF-Token` for GraphQL requests using the CSRF cookie value.
+
+Env vars:
+
+- `APP_AUTH_SESSION_COOKIE_NAME` (default: `youwo.sid`)
+- `APP_AUTH_CSRF_COOKIE_NAME` (default: `youwo.csrf`)
+- `APP_AUTH_COOKIE_SECURE` (default: `false` for local HTTP dev)
+- `VITE_AUTH_CSRF_COOKIE_NAME` (default: `youwo.csrf`)
+
+For HTTPS production, set secure host cookies, for example:
+
+```env
+APP_AUTH_SESSION_COOKIE_NAME=__Host-sid
+APP_AUTH_CSRF_COOKIE_NAME=__Host-csrf
+APP_AUTH_COOKIE_SECURE=true
+VITE_AUTH_CSRF_COOKIE_NAME=__Host-csrf
+```
+
 ## 3) Database migration (Flyway)
 
 Migrations are stored in `api-java/src/main/resources/db/migration`.
