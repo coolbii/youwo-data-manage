@@ -199,15 +199,22 @@ Snapshot path:
 
 - `api-java/src/main/resources/graphql/schema.graphqls`
 
-## 7) Docker and Nginx deployment
+## 7) Docker deployment modes
 
-Production compose:
+Standalone mode (single project owns `80/443`):
 
 ```bash
 docker compose -f docker-compose.prod.yml up -d --build
 ```
 
-API container uses Spring Boot image build from `Dockerfile.api`.
+Shared-EC2 mode (recommended when multiple projects share one EC2):
+
+- Use `deploy/docker-compose.ec2.yml`.
+- This file only runs `client` + `api` and binds localhost-only ports:
+  - `127.0.0.1:${WEB_LOCAL_PORT:-18180}:3000`
+  - `127.0.0.1:${API_LOCAL_PORT:-18181}:3000`
+- No container in this project binds host `80/443`.
+- `deploy/client.nginx.conf` already proxies `/api/*` to `api:3000`, so edge-nginx only needs to proxy `/` to the web local port.
 
 Required env for API service:
 
@@ -215,9 +222,64 @@ Required env for API service:
 - `SPRING_DATASOURCE_USERNAME` (default `postgres`)
 - `SPRING_DATASOURCE_PASSWORD` (default `postgres`)
 
-EC2 compose template:
+## 8) Shared EC2 + edge-nginx setup (one-time)
 
-- `deploy/docker-compose.ec2.yml`
-- `deploy/nginx.conf`
+Example edge-nginx vhost template:
 
-`deploy/nginx.conf` is set for `youwo.bin-hq.com` by default.
+- `deploy/edge-nginx.youwo.bin-hq.com.conf.example`
+
+On EC2 edge-nginx host:
+
+1. copy config to `/opt/edge-nginx/conf.d/youwo.bin-hq.com.conf`
+2. place Cloudflare origin cert/key under `/opt/edge-nginx/certs/`
+3. validate and reload edge-nginx
+
+```bash
+sudo docker exec edge-nginx nginx -t
+sudo docker restart edge-nginx
+```
+
+## 9) GitHub Actions CI/CD
+
+Workflows:
+
+- `.github/workflows/ci.yml`
+- `.github/workflows/cd-ec2.yml`
+
+`ci.yml` runs:
+
+- `npm ci`
+- `npm run lint`
+- `npm run test:api-java`
+- `npm run graphql:check`
+- `npm run build`
+
+`cd-ec2.yml` does:
+
+1. build/push Docker images to GHCR (`youwo-api`, `youwo-client`)
+2. upload `deploy/docker-compose.ec2.yml` to EC2 deploy path
+3. SSH into EC2 and run:
+   - `docker compose pull`
+   - `docker compose up -d --remove-orphans`
+4. health check on localhost ports (`WEB_LOCAL_PORT`, `API_LOCAL_PORT`)
+
+Important safety behavior for shared EC2:
+
+- deploy only uses one compose project name (`EC2_DOCKER_PROJECT_NAME`)
+- does not run `docker compose down`
+- refuses deployment if local ports are set to `80` or `443`
+
+Required GitHub repository secrets:
+
+- `EC2_HOST`
+- `EC2_USER`
+- `EC2_SSH_PRIVATE_KEY`
+- `EC2_DEPLOY_PATH` (example: `/opt/youwo-homework/deploy`)
+- `EC2_DOCKER_PROJECT_NAME` (example: `youwo-homework`)
+- `EC2_WEB_LOCAL_PORT` (example: `18180`)
+- `EC2_API_LOCAL_PORT` (example: `18181`)
+- `PROD_SPRING_DATASOURCE_URL`
+- `PROD_SPRING_DATASOURCE_USERNAME`
+- `PROD_SPRING_DATASOURCE_PASSWORD`
+- `GHCR_USERNAME`
+- `GHCR_PULL_TOKEN` (PAT with `read:packages`)

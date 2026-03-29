@@ -1,0 +1,151 @@
+name: CD - Shared EC2
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: cd-ec2-main
+  cancel-in-progress: false
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      api_image: ${{ steps.image-vars.outputs.api_image }}
+      client_image: ${{ steps.image-vars.outputs.client_image }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set image names
+        id: image-vars
+        run: |
+          REPO_LOWER=$(echo "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')
+          echo "api_image=ghcr.io/${REPO_LOWER}/youwo-api:${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+          echo "api_image_latest=ghcr.io/${REPO_LOWER}/youwo-api:latest" >> "$GITHUB_OUTPUT"
+          echo "client_image=ghcr.io/${REPO_LOWER}/youwo-client:${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+          echo "client_image_latest=ghcr.io/${REPO_LOWER}/youwo-client:latest" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push API image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.api
+          push: true
+          platforms: linux/amd64
+          tags: |
+            ${{ steps.image-vars.outputs.api_image }}
+            ${{ steps.image-vars.outputs.api_image_latest }}
+
+      - name: Build and push Client image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.client
+          push: true
+          platforms: linux/amd64
+          tags: |
+            ${{ steps.image-vars.outputs.client_image }}
+            ${{ steps.image-vars.outputs.client_image_latest }}
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Upload EC2 compose file
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+          source: deploy/docker-compose.ec2.yml
+          target: ${{ secrets.EC2_DEPLOY_PATH }}
+          strip_components: 1
+
+      - name: Deploy on EC2 (shared instance-safe)
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          API_IMAGE: ${{ needs.build-and-push.outputs.api_image }}
+          CLIENT_IMAGE: ${{ needs.build-and-push.outputs.client_image }}
+          EC2_DEPLOY_PATH: ${{ secrets.EC2_DEPLOY_PATH }}
+          EC2_DOCKER_PROJECT_NAME: ${{ secrets.EC2_DOCKER_PROJECT_NAME }}
+          EC2_WEB_LOCAL_PORT: ${{ secrets.EC2_WEB_LOCAL_PORT }}
+          EC2_API_LOCAL_PORT: ${{ secrets.EC2_API_LOCAL_PORT }}
+          SPRING_DATASOURCE_URL: ${{ secrets.PROD_SPRING_DATASOURCE_URL }}
+          SPRING_DATASOURCE_USERNAME: ${{ secrets.PROD_SPRING_DATASOURCE_USERNAME }}
+          SPRING_DATASOURCE_PASSWORD: ${{ secrets.PROD_SPRING_DATASOURCE_PASSWORD }}
+          GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
+          GHCR_PULL_TOKEN: ${{ secrets.GHCR_PULL_TOKEN }}
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+          envs: API_IMAGE,CLIENT_IMAGE,EC2_DEPLOY_PATH,EC2_DOCKER_PROJECT_NAME,EC2_WEB_LOCAL_PORT,EC2_API_LOCAL_PORT,SPRING_DATASOURCE_URL,SPRING_DATASOURCE_USERNAME,SPRING_DATASOURCE_PASSWORD,GHCR_USERNAME,GHCR_PULL_TOKEN
+          script_stop: true
+          script: |
+            set -euo pipefail
+
+            DEPLOY_PATH="${EC2_DEPLOY_PATH:-/opt/youwo-homework/deploy}"
+            PROJECT_NAME="${EC2_DOCKER_PROJECT_NAME:-youwo-homework}"
+            WEB_PORT="${EC2_WEB_LOCAL_PORT:-18180}"
+            API_PORT="${EC2_API_LOCAL_PORT:-18181}"
+
+            if [ "${WEB_PORT}" = "80" ] || [ "${WEB_PORT}" = "443" ] || [ "${API_PORT}" = "80" ] || [ "${API_PORT}" = "443" ]; then
+              echo "Refuse to deploy: local ports cannot use 80/443 on shared EC2." >&2
+              exit 1
+            fi
+
+            mkdir -p "${DEPLOY_PATH}"
+            cd "${DEPLOY_PATH}"
+
+            cat > .env <<ENVFILE
+            API_IMAGE=${API_IMAGE}
+            CLIENT_IMAGE=${CLIENT_IMAGE}
+            WEB_LOCAL_PORT=${WEB_PORT}
+            API_LOCAL_PORT=${API_PORT}
+            SPRING_DATASOURCE_URL=${SPRING_DATASOURCE_URL}
+            SPRING_DATASOURCE_USERNAME=${SPRING_DATASOURCE_USERNAME}
+            SPRING_DATASOURCE_PASSWORD=${SPRING_DATASOURCE_PASSWORD}
+            ENVFILE
+
+            echo "${GHCR_PULL_TOKEN}" | docker login ghcr.io -u "${GHCR_USERNAME}" --password-stdin
+
+            docker compose \
+              --project-name "${PROJECT_NAME}" \
+              -f docker-compose.ec2.yml \
+              --env-file .env \
+              pull
+
+            docker compose \
+              --project-name "${PROJECT_NAME}" \
+              -f docker-compose.ec2.yml \
+              --env-file .env \
+              up -d --remove-orphans
+
+            curl -fsS -I "http://127.0.0.1:${WEB_PORT}" >/dev/null
+            curl -fsS "http://127.0.0.1:${API_PORT}/api/health" >/dev/null
+
+            docker ps --format 'table {{.Names}}\t{{.Ports}}'
