@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import router from '../router';
 import { mount } from '@vue/test-utils'
+import { DefaultApolloClient } from '@vue/apollo-composable';
+import { apolloClient } from '../lib/apollo-client';
 import App from './App.vue';
 
 if (!window.matchMedia) {
@@ -19,8 +21,18 @@ if (!window.matchMedia) {
 
 describe('App', () => {
   it('renders properly', async () => {
-    const wrapper = mount(App, { global: { plugins: [router] }})
+    await router.push('/login');
     await router.isReady();
-    expect(wrapper.find('.app-root').exists()).toBe(true)
+
+    const wrapper = mount(App, {
+      global: {
+        plugins: [router],
+        provide: {
+          [DefaultApolloClient as symbol]: apolloClient,
+        },
+      },
+    });
+    await router.isReady();
+    expect(wrapper.find('.app-shell').exists()).toBe(true)
   })
 });

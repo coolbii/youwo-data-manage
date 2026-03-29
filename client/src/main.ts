@@ -4,6 +4,9 @@ import { createApp, provide, h } from 'vue';
 import { DefaultApolloClient } from '@vue/apollo-composable';
 import { apolloClient } from './lib/apollo-client';
 import App from './app/App.vue';
+import { initializeAuthSession } from './composables/useAuthSession';
+
+initializeAuthSession();
 
 const app = createApp({
   setup() {

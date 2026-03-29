@@ -1,0 +1,28 @@
+fragment AuthUserFields on AuthUserPayload {
+  id
+  email
+  createdAt
+  updatedAt
+}
+
+fragment AuthSessionFields on AuthSessionPayload {
+  user {
+    ...AuthUserFields
+  }
+}
+
+query Me {
+  me {
+    ...AuthUserFields
+  }
+}
+
+mutation Login($email: String!, $password: String!) {
+  login(email: $email, password: $password) {
+    ...AuthSessionFields
+  }
+}
+
+mutation Logout {
+  logout
+}

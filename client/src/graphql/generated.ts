@@ -16,58 +16,89 @@ export type Scalars = {
   Boolean: { input: boolean; output: boolean; }
   Int: { input: number; output: number; }
   Float: { input: number; output: number; }
+  /** A 64-bit signed integer */
   Long: { input: any; output: any; }
+  /** UUID String */
   UUID: { input: any; output: any; }
 };
 
+export type AuthSessionPayload = {
+  __typename?: 'AuthSessionPayload';
+  user?: Maybe<AuthUserPayload>;
+};
+
+export type AuthUserPayload = {
+  __typename?: 'AuthUserPayload';
+  createdAt?: Maybe<Scalars['String']['output']>;
+  email?: Maybe<Scalars['String']['output']>;
+  id?: Maybe<Scalars['UUID']['output']>;
+  updatedAt?: Maybe<Scalars['String']['output']>;
+};
+
+/** Mutation root */
 export type Mutation = {
   __typename?: 'Mutation';
   createPerson?: Maybe<PersonPayload>;
   createPinRule?: Maybe<PinRulePayload>;
-  deletePerson?: Maybe<Scalars['Boolean']['output']>;
-  deletePinRule?: Maybe<Scalars['Boolean']['output']>;
+  deletePerson: Scalars['Boolean']['output'];
+  deletePinRule: Scalars['Boolean']['output'];
+  login?: Maybe<AuthSessionPayload>;
+  logout: Scalars['Boolean']['output'];
   updatePerson?: Maybe<PersonPayload>;
   updatePinRule?: Maybe<PinRulePayload>;
 };
 
 
+/** Mutation root */
 export type MutationCreatePersonArgs = {
-  birthdate: Scalars['String']['input'];
-  location: Scalars['String']['input'];
-  name: Scalars['String']['input'];
-  position: Scalars['String']['input'];
-};
-
-
-export type MutationCreatePinRuleArgs = {
-  personId: Scalars['UUID']['input'];
-  scopeTotal?: InputMaybe<Scalars['Int']['input']>;
-  targetPosition: Scalars['Int']['input'];
-};
-
-
-export type MutationDeletePersonArgs = {
-  id: Scalars['UUID']['input'];
-};
-
-
-export type MutationDeletePinRuleArgs = {
-  id: Scalars['UUID']['input'];
-};
-
-
-export type MutationUpdatePersonArgs = {
   birthdate?: InputMaybe<Scalars['String']['input']>;
-  id: Scalars['UUID']['input'];
   location?: InputMaybe<Scalars['String']['input']>;
   name?: InputMaybe<Scalars['String']['input']>;
   position?: InputMaybe<Scalars['String']['input']>;
 };
 
 
+/** Mutation root */
+export type MutationCreatePinRuleArgs = {
+  personId?: InputMaybe<Scalars['UUID']['input']>;
+  scopeTotal?: InputMaybe<Scalars['Int']['input']>;
+  targetPosition: Scalars['Int']['input'];
+};
+
+
+/** Mutation root */
+export type MutationDeletePersonArgs = {
+  id?: InputMaybe<Scalars['UUID']['input']>;
+};
+
+
+/** Mutation root */
+export type MutationDeletePinRuleArgs = {
+  id?: InputMaybe<Scalars['UUID']['input']>;
+};
+
+
+/** Mutation root */
+export type MutationLoginArgs = {
+  email: Scalars['String']['input'];
+  password: Scalars['String']['input'];
+};
+
+
+/** Mutation root */
+export type MutationUpdatePersonArgs = {
+  birthdate?: InputMaybe<Scalars['String']['input']>;
+  id?: InputMaybe<Scalars['UUID']['input']>;
+  location?: InputMaybe<Scalars['String']['input']>;
+  name?: InputMaybe<Scalars['String']['input']>;
+  position?: InputMaybe<Scalars['String']['input']>;
+};
+
+
+/** Mutation root */
 export type MutationUpdatePinRuleArgs = {
   enabled?: InputMaybe<Scalars['Boolean']['input']>;
-  id: Scalars['UUID']['input'];
+  id?: InputMaybe<Scalars['UUID']['input']>;
   scopeTotal?: InputMaybe<Scalars['Int']['input']>;
   targetPosition?: InputMaybe<Scalars['Int']['input']>;
 };
@@ -76,7 +107,7 @@ export type PeopleConnectionPayload = {
   __typename?: 'PeopleConnectionPayload';
   nodes?: Maybe<Array<Maybe<PersonPayload>>>;
   pageInfo?: Maybe<PeoplePageInfoPayload>;
-  totalCount?: Maybe<Scalars['Long']['output']>;
+  totalCount: Scalars['Long']['output'];
 };
 
 export type PeoplePageInfoPayload = {
@@ -126,14 +157,17 @@ export enum PinRuleState {
   NoMatch = 'NO_MATCH'
 }
 
+/** Query root */
 export type Query = {
   __typename?: 'Query';
+  me?: Maybe<AuthUserPayload>;
   peopleList?: Maybe<PeopleConnectionPayload>;
   person?: Maybe<PersonPayload>;
   pinRules?: Maybe<Array<Maybe<PinRulePayload>>>;
 };
 
 
+/** Query root */
 export type QueryPeopleListArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
   first?: InputMaybe<Scalars['Int']['input']>;
@@ -143,11 +177,13 @@ export type QueryPeopleListArgs = {
 };
 
 
+/** Query root */
 export type QueryPersonArgs = {
   id?: InputMaybe<Scalars['UUID']['input']>;
 };
 
 
+/** Query root */
 export type QueryPinRulesArgs = {
   scopeTotal?: InputMaybe<Scalars['Int']['input']>;
 };
@@ -156,6 +192,28 @@ export enum SortDirection {
   Asc = 'ASC',
   Desc = 'DESC'
 }
+
+export type AuthUserFieldsFragment = { __typename?: 'AuthUserPayload', id?: any | null, email?: string | null, createdAt?: string | null, updatedAt?: string | null };
+
+export type AuthSessionFieldsFragment = { __typename?: 'AuthSessionPayload', user?: { __typename?: 'AuthUserPayload', id?: any | null, email?: string | null, createdAt?: string | null, updatedAt?: string | null } | null };
+
+export type MeQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type MeQuery = { __typename?: 'Query', me?: { __typename?: 'AuthUserPayload', id?: any | null, email?: string | null, createdAt?: string | null, updatedAt?: string | null } | null };
+
+export type LoginMutationVariables = Exact<{
+  email: Scalars['String']['input'];
+  password: Scalars['String']['input'];
+}>;
+
+
+export type LoginMutation = { __typename?: 'Mutation', login?: { __typename?: 'AuthSessionPayload', user?: { __typename?: 'AuthUserPayload', id?: any | null, email?: string | null, createdAt?: string | null, updatedAt?: string | null } | null } | null };
+
+export type LogoutMutationVariables = Exact<{ [key: string]: never; }>;
+
+
+export type LogoutMutation = { __typename?: 'Mutation', logout: boolean };
 
 export type PersonFieldsFragment = { __typename?: 'PersonPayload', id?: any | null, name?: string | null, position?: string | null, location?: string | null, age?: number | null, birthdate?: string | null, createdAt?: string | null, updatedAt?: string | null };
 
@@ -168,7 +226,7 @@ export type PeopleListQueryVariables = Exact<{
 }>;
 
 
-export type PeopleListQuery = { __typename?: 'Query', peopleList?: { __typename?: 'PeopleConnectionPayload', totalCount?: any | null, nodes?: Array<{ __typename?: 'PersonPayload', id?: any | null, name?: string | null, position?: string | null, location?: string | null, age?: number | null, birthdate?: string | null, createdAt?: string | null, updatedAt?: string | null } | null> | null, pageInfo?: { __typename?: 'PeoplePageInfoPayload', endCursor?: string | null, hasNextPage: boolean } | null } | null };
+export type PeopleListQuery = { __typename?: 'Query', peopleList?: { __typename?: 'PeopleConnectionPayload', totalCount: any, nodes?: Array<{ __typename?: 'PersonPayload', id?: any | null, name?: string | null, position?: string | null, location?: string | null, age?: number | null, birthdate?: string | null, createdAt?: string | null, updatedAt?: string | null } | null> | null, pageInfo?: { __typename?: 'PeoplePageInfoPayload', endCursor?: string | null, hasNextPage: boolean } | null } | null };
 
 export type PersonDetailQueryVariables = Exact<{
   id?: InputMaybe<Scalars['UUID']['input']>;
@@ -182,7 +240,7 @@ export type DeletePersonMutationVariables = Exact<{
 }>;
 
 
-export type DeletePersonMutation = { __typename?: 'Mutation', deletePerson?: boolean | null };
+export type DeletePersonMutation = { __typename?: 'Mutation', deletePerson: boolean };
 
 export type CreatePersonMutationVariables = Exact<{
   name: Scalars['String']['input'];
@@ -238,8 +296,23 @@ export type DeletePinRuleMutationVariables = Exact<{
 }>;
 
 
-export type DeletePinRuleMutation = { __typename?: 'Mutation', deletePinRule?: boolean | null };
+export type DeletePinRuleMutation = { __typename?: 'Mutation', deletePinRule: boolean };
 
+export const AuthUserFieldsFragmentDoc = gql`
+    fragment AuthUserFields on AuthUserPayload {
+  id
+  email
+  createdAt
+  updatedAt
+}
+    `;
+export const AuthSessionFieldsFragmentDoc = gql`
+    fragment AuthSessionFields on AuthSessionPayload {
+  user {
+    ...AuthUserFields
+  }
+}
+    ${AuthUserFieldsFragmentDoc}`;
 export const PersonFieldsFragmentDoc = gql`
     fragment PersonFields on PersonPayload {
   id
@@ -266,6 +339,40 @@ export const PinRuleFieldsFragmentDoc = gql`
   updatedAt
 }
     `;
+export const MeDocument = gql`
+    query Me {
+  me {
+    ...AuthUserFields
+  }
+}
+    ${AuthUserFieldsFragmentDoc}`;
+export function useMeQuery(options: VueApolloComposable.UseQueryOptions<MeQuery, MeQueryVariables> | VueCompositionApi.Ref<VueApolloComposable.UseQueryOptions<MeQuery, MeQueryVariables>> | ReactiveFunction<VueApolloComposable.UseQueryOptions<MeQuery, MeQueryVariables>> = {}) {
+  return VueApolloComposable.useQuery<MeQuery, MeQueryVariables>(MeDocument, {}, options);
+}
+export function useMeLazyQuery(options: VueApolloComposable.UseQueryOptions<MeQuery, MeQueryVariables> | VueCompositionApi.Ref<VueApolloComposable.UseQueryOptions<MeQuery, MeQueryVariables>> | ReactiveFunction<VueApolloComposable.UseQueryOptions<MeQuery, MeQueryVariables>> = {}) {
+  return VueApolloComposable.useLazyQuery<MeQuery, MeQueryVariables>(MeDocument, {}, options);
+}
+export type MeQueryCompositionFunctionResult = VueApolloComposable.UseQueryReturn<MeQuery, MeQueryVariables>;
+export const LoginDocument = gql`
+    mutation Login($email: String!, $password: String!) {
+  login(email: $email, password: $password) {
+    ...AuthSessionFields
+  }
+}
+    ${AuthSessionFieldsFragmentDoc}`;
+export function useLoginMutation(options: VueApolloComposable.UseMutationOptions<LoginMutation, LoginMutationVariables> | ReactiveFunction<VueApolloComposable.UseMutationOptions<LoginMutation, LoginMutationVariables>> = {}) {
+  return VueApolloComposable.useMutation<LoginMutation, LoginMutationVariables>(LoginDocument, options);
+}
+export type LoginMutationCompositionFunctionResult = VueApolloComposable.UseMutationReturn<LoginMutation, LoginMutationVariables>;
+export const LogoutDocument = gql`
+    mutation Logout {
+  logout
+}
+    `;
+export function useLogoutMutation(options: VueApolloComposable.UseMutationOptions<LogoutMutation, LogoutMutationVariables> | ReactiveFunction<VueApolloComposable.UseMutationOptions<LogoutMutation, LogoutMutationVariables>> = {}) {
+  return VueApolloComposable.useMutation<LogoutMutation, LogoutMutationVariables>(LogoutDocument, options);
+}
+export type LogoutMutationCompositionFunctionResult = VueApolloComposable.UseMutationReturn<LogoutMutation, LogoutMutationVariables>;
 export const PeopleListDocument = gql`
     query PeopleList($first: Int, $after: String, $search: String, $sortBy: PeopleSortField, $sortDirection: SortDirection) {
   peopleList(
