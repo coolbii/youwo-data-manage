@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 @Component
+@AuthGuarded
 public class AuthGraphqlController {
   private final UserRepository userRepository;
   private final PasswordEncoder passwordEncoder;
@@ -26,6 +27,7 @@ public class AuthGraphqlController {
   }
 
   @GraphQLMutation(name = "login")
+  @PublicApi
   @Transactional
   public AuthSessionPayload login(
       @GraphQLArgument(name = "email") @GraphQLNonNull String email,

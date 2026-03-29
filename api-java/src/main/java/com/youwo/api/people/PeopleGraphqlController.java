@@ -1,11 +1,9 @@
 package com.youwo.api.people;
 
-import com.youwo.api.auth.AuthSessionService;
-import com.youwo.api.graphql.GraphqlRequestContext;
+import com.youwo.api.auth.AuthGuarded;
 import io.leangen.graphql.annotations.GraphQLArgument;
 import io.leangen.graphql.annotations.GraphQLMutation;
 import io.leangen.graphql.annotations.GraphQLQuery;
-import io.leangen.graphql.annotations.GraphQLRootContext;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
@@ -13,18 +11,15 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 @Component
+@AuthGuarded
 public class PeopleGraphqlController {
   private final PersonRepository repository;
   private final PinRuleRepository pinRuleRepository;
-  private final AuthSessionService authSessionService;
 
   public PeopleGraphqlController(
-      PersonRepository repository,
-      PinRuleRepository pinRuleRepository,
-      AuthSessionService authSessionService) {
+      PersonRepository repository, PinRuleRepository pinRuleRepository) {
     this.repository = repository;
     this.pinRuleRepository = pinRuleRepository;
-    this.authSessionService = authSessionService;
   }
 
   @GraphQLQuery(name = "peopleList")
@@ -33,10 +28,7 @@ public class PeopleGraphqlController {
       @GraphQLArgument(name = "after") String after,
       @GraphQLArgument(name = "search") String search,
       @GraphQLArgument(name = "sortBy") PeopleSortField sortBy,
-      @GraphQLArgument(name = "sortDirection") SortDirection sortDirection,
-      @GraphQLRootContext("") GraphqlRequestContext requestContext) {
-    requireAuthentication(requestContext);
-
+      @GraphQLArgument(name = "sortDirection") SortDirection sortDirection) {
     int safeFirst = first == null ? 100 : Math.min(Math.max(first, 1), 100);
     PeopleSortField safeSortBy = sortBy == null ? PeopleSortField.CREATED_AT : sortBy;
     SortDirection safeSortDir = sortDirection == null ? SortDirection.ASC : sortDirection;
@@ -71,11 +63,7 @@ public class PeopleGraphqlController {
   }
 
   @GraphQLQuery(name = "person")
-  public PersonPayload person(
-      @GraphQLArgument(name = "id") UUID id,
-      @GraphQLRootContext("") GraphqlRequestContext requestContext) {
-    requireAuthentication(requestContext);
-
+  public PersonPayload person(@GraphQLArgument(name = "id") UUID id) {
     return repository.findById(id)
         .map(PersonPayload::fromEntity)
         .orElseThrow(() -> new IllegalArgumentException("Person not found: " + id));
@@ -87,10 +75,7 @@ public class PeopleGraphqlController {
       @GraphQLArgument(name = "name") String name,
       @GraphQLArgument(name = "position") String position,
       @GraphQLArgument(name = "location") String location,
-      @GraphQLArgument(name = "birthdate") String birthdate,
-      @GraphQLRootContext("") GraphqlRequestContext requestContext) {
-    requireAuthentication(requestContext);
-
+      @GraphQLArgument(name = "birthdate") String birthdate) {
     validatePersonFields(name, position, location, birthdate);
     PersonEntity entity = new PersonEntity();
     entity.setName(name.trim());
@@ -107,10 +92,7 @@ public class PeopleGraphqlController {
       @GraphQLArgument(name = "name") String name,
       @GraphQLArgument(name = "position") String position,
       @GraphQLArgument(name = "location") String location,
-      @GraphQLArgument(name = "birthdate") String birthdate,
-      @GraphQLRootContext("") GraphqlRequestContext requestContext) {
-    requireAuthentication(requestContext);
-
+      @GraphQLArgument(name = "birthdate") String birthdate) {
     PersonEntity entity = repository.findById(id)
         .orElseThrow(() -> new IllegalArgumentException("Person not found: " + id));
     if (name != null) {
@@ -130,11 +112,7 @@ public class PeopleGraphqlController {
 
   @GraphQLMutation(name = "deletePerson")
   @Transactional
-  public boolean deletePerson(
-      @GraphQLArgument(name = "id") UUID id,
-      @GraphQLRootContext("") GraphqlRequestContext requestContext) {
-    requireAuthentication(requestContext);
-
+  public boolean deletePerson(@GraphQLArgument(name = "id") UUID id) {
     if (!repository.existsById(id)) {
       throw new IllegalArgumentException("Person not found: " + id);
     }
@@ -158,7 +136,4 @@ public class PeopleGraphqlController {
     }
   }
 
-  private void requireAuthentication(GraphqlRequestContext requestContext) {
-    authSessionService.requireAuthenticatedUser(requestContext);
-  }
 }
