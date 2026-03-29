@@ -257,11 +257,12 @@ Workflows:
 `cd-ec2.yml` does:
 
 1. build/push Docker images to GHCR (`youwo-api`, `youwo-client`)
-2. upload `deploy/docker-compose.ec2.yml` to EC2 deploy path
-3. SSH into EC2 and run:
+2. upload `deploy/docker-compose.ec2.yml` and Flyway SQL files to EC2 deploy path
+3. SSH into EC2 and run Flyway migration first
+4. then run:
    - `docker compose pull`
    - `docker compose up -d --remove-orphans`
-4. health check on localhost ports (`WEB_LOCAL_PORT`, `API_LOCAL_PORT`)
+5. health check on localhost ports (`WEB_LOCAL_PORT`, `API_LOCAL_PORT`)
 
 Important safety behavior for shared EC2:
 
