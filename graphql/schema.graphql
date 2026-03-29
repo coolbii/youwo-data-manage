@@ -1,57 +1,63 @@
-scalar UUID
-
-type Query {
-  peopleList(
-    first: Int
-    after: String
-    search: String
-    sortBy: PeopleSortField
-    sortDirection: SortDirection
-  ): PeopleConnectionPayload
-
-  person(id: UUID): PersonPayload
-
-  pinRules(scopeTotal: Int): [PinRulePayload]
+# GENERATED FILE. DO NOT EDIT MANUALLY.
+schema {
+  query: Query
+  mutation: Mutation
 }
 
-type Mutation {
-  createPerson(
-    name: String!
-    position: String!
-    location: String!
-    birthdate: String!
-  ): PersonPayload
+"Marks the field, argument, input field or enum value as deprecated"
+directive @deprecated(
+    "The reason for the deprecation"
+    reason: String = "No longer supported"
+  ) on FIELD_DEFINITION | ARGUMENT_DEFINITION | ENUM_VALUE | INPUT_FIELD_DEFINITION
 
-  updatePerson(
-    id: UUID!
-    name: String
-    position: String
-    location: String
-    birthdate: String
-  ): PersonPayload
+"Directs the executor to include this field or fragment only when the `if` argument is true"
+directive @include(
+    "Included when true."
+    if: Boolean!
+  ) on FIELD | FRAGMENT_SPREAD | INLINE_FRAGMENT
 
-  deletePerson(id: UUID!): Boolean
+"Indicates an Input Object is a OneOf Input Object."
+directive @oneOf on INPUT_OBJECT
 
-  createPinRule(personId: UUID!, targetPosition: Int!, scopeTotal: Int): PinRulePayload
-  updatePinRule(id: UUID!, targetPosition: Int, enabled: Boolean, scopeTotal: Int): PinRulePayload
-  deletePinRule(id: UUID!): Boolean
+"Directs the executor to skip this field or fragment when the `if` argument is true."
+directive @skip(
+    "Skipped when true."
+    if: Boolean!
+  ) on FIELD | FRAGMENT_SPREAD | INLINE_FRAGMENT
+
+"Exposes a URL that specifies the behaviour of this scalar."
+directive @specifiedBy(
+    "The URL that specifies the behaviour of this scalar."
+    url: String!
+  ) on SCALAR
+
+type AuthSessionPayload {
+  user: AuthUserPayload
 }
 
-type PersonPayload {
-  id: UUID
-  name: String
-  position: String
-  location: String
-  age: Int
-  birthdate: String
+type AuthUserPayload {
   createdAt: String
+  email: String
+  id: UUID
   updatedAt: String
+}
+
+"Mutation root"
+type Mutation {
+  createPerson(birthdate: String, location: String, name: String, position: String): PersonPayload
+  createPinRule(personId: UUID, scopeTotal: Int, targetPosition: Int!): PinRulePayload
+  deletePerson(id: UUID): Boolean!
+  deletePinRule(id: UUID): Boolean!
+  login(email: String!, password: String!): AuthSessionPayload
+  logout: Boolean!
+  updatePerson(birthdate: String, id: UUID, location: String, name: String, position: String): PersonPayload
+  updatePinRule(enabled: Boolean, id: UUID, scopeTotal: Int, targetPosition: Int): PinRulePayload
 }
 
 type PeopleConnectionPayload {
   nodes: [PersonPayload]
   pageInfo: PeoplePageInfoPayload
-  totalCount: Long
+  totalCount: Long!
 }
 
 type PeoplePageInfoPayload {
@@ -59,17 +65,44 @@ type PeoplePageInfoPayload {
   hasNextPage: Boolean!
 }
 
+type PersonPayload {
+  age: Int
+  birthdate: String
+  createdAt: String
+  id: UUID
+  location: String
+  name: String
+  position: String
+  updatedAt: String
+}
+
 type PinRulePayload {
+  createdAt: String
+  effectiveIndex: Int
+  enabled: Boolean!
   id: UUID
   personId: UUID
   personName: String
-  targetPosition: Int!
-  targetIndex: Int!
-  effectiveIndex: Int
   state: PinRuleState!
-  enabled: Boolean!
-  createdAt: String
+  targetIndex: Int!
+  targetPosition: Int!
   updatedAt: String
+}
+
+"Query root"
+type Query {
+  me: AuthUserPayload
+  peopleList(after: String, first: Int, search: String, sortBy: PeopleSortField, sortDirection: SortDirection): PeopleConnectionPayload
+  person(id: UUID): PersonPayload
+  pinRules(scopeTotal: Int): [PinRulePayload]
+}
+
+enum PeopleSortField {
+  BIRTHDATE
+  CREATED_AT
+  LOCATION
+  NAME
+  POSITION
 }
 
 enum PinRuleState {
@@ -79,17 +112,13 @@ enum PinRuleState {
   NO_MATCH
 }
 
-enum PeopleSortField {
-  NAME
-  POSITION
-  LOCATION
-  BIRTHDATE
-  CREATED_AT
-}
-
 enum SortDirection {
   ASC
   DESC
 }
 
+"A 64-bit signed integer"
 scalar Long
+
+"UUID String"
+scalar UUID

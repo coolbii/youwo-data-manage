@@ -31,12 +31,25 @@ directive @specifiedBy(
     url: String!
   ) on SCALAR
 
+type AuthSessionPayload {
+  user: AuthUserPayload
+}
+
+type AuthUserPayload {
+  createdAt: String
+  email: String
+  id: UUID
+  updatedAt: String
+}
+
 "Mutation root"
 type Mutation {
   createPerson(birthdate: String, location: String, name: String, position: String): PersonPayload
   createPinRule(personId: UUID, scopeTotal: Int, targetPosition: Int!): PinRulePayload
   deletePerson(id: UUID): Boolean!
   deletePinRule(id: UUID): Boolean!
+  login(email: String!, password: String!): AuthSessionPayload
+  logout: Boolean!
   updatePerson(birthdate: String, id: UUID, location: String, name: String, position: String): PersonPayload
   updatePinRule(enabled: Boolean, id: UUID, scopeTotal: Int, targetPosition: Int): PinRulePayload
 }
@@ -78,6 +91,7 @@ type PinRulePayload {
 
 "Query root"
 type Query {
+  me: AuthUserPayload
   peopleList(after: String, first: Int, search: String, sortBy: PeopleSortField, sortDirection: SortDirection): PeopleConnectionPayload
   person(id: UUID): PersonPayload
   pinRules(scopeTotal: Int): [PinRulePayload]
