@@ -172,13 +172,6 @@ jobs:
             API_PORT="${EC2_API_LOCAL_PORT:-18181}"
             DB_URL="${SPRING_DATASOURCE_URL}"
 
-            for key in API_IMAGE CLIENT_IMAGE GHCR_USERNAME GHCR_PULL_TOKEN SPRING_DATASOURCE_URL SPRING_DATASOURCE_USERNAME SPRING_DATASOURCE_PASSWORD; do
-              if [ -z "${!key:-}" ]; then
-                echo "Required env is empty: ${key}" >&2
-                exit 1
-              fi
-            done
-
             # Normalize: trim whitespace, strip wrapping quotes
             DB_URL="$(printf '%s' "${DB_URL}" | tr -d '\r' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
             DB_URL="${DB_URL#\"}" && DB_URL="${DB_URL%\"}"
