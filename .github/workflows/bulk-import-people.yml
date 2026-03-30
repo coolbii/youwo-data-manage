@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       csv_path:
-        description: CSV path in repository (example: db/people_import_template.csv)
+        description: CSV path in repository
         required: true
         default: db/people_import_template.csv
       ec2_import_dir:
@@ -12,11 +12,13 @@ on:
         required: true
         default: /opt/youwo-homework/import
 
+permissions:
+  contents: read
+
 jobs:
   import-people:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
+    environment: production
 
     steps:
       - name: Checkout
@@ -24,7 +26,7 @@ jobs:
 
       - name: Validate CSV and SQL files
         env:
-          CSV_PATH: ${{ github.event.inputs.csv_path }}
+          CSV_PATH: ${{ inputs.csv_path }}
         run: |
           set -euo pipefail
           test -f "${CSV_PATH}" || { echo "CSV file not found: ${CSV_PATH}" >&2; exit 1; }
@@ -33,7 +35,7 @@ jobs:
       - name: Prepare import directory on EC2
         uses: appleboy/ssh-action@v1.0.3
         env:
-          EC2_IMPORT_DIR: ${{ github.event.inputs.ec2_import_dir }}
+          EC2_IMPORT_DIR: ${{ inputs.ec2_import_dir }}
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
@@ -48,14 +50,14 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
-          source: db/import_people_batch.sql,${{ github.event.inputs.csv_path }},deploy/bulk-import-people.sh
-          target: ${{ github.event.inputs.ec2_import_dir }}
+          source: db/import_people_batch.sql,${{ inputs.csv_path }},deploy/bulk-import-people.sh
+          target: ${{ inputs.ec2_import_dir }}
 
       - name: Run people bulk import on EC2
         uses: appleboy/ssh-action@v1.0.3
         env:
-          EC2_IMPORT_DIR: ${{ github.event.inputs.ec2_import_dir }}
-          CSV_PATH: ${{ github.event.inputs.csv_path }}
+          EC2_IMPORT_DIR: ${{ inputs.ec2_import_dir }}
+          CSV_PATH: ${{ inputs.csv_path }}
           SPRING_DATASOURCE_URL: ${{ secrets.PROD_SPRING_DATASOURCE_URL }}
           SPRING_DATASOURCE_USERNAME: ${{ secrets.PROD_SPRING_DATASOURCE_USERNAME }}
           SPRING_DATASOURCE_PASSWORD: ${{ secrets.PROD_SPRING_DATASOURCE_PASSWORD }}
