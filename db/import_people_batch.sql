@@ -30,9 +30,7 @@ CREATE TEMP TABLE people_import_raw (
   birth_date TEXT
 ) ON COMMIT DROP;
 
-COPY people_import_raw (name, position_title, location, birth_date)
-FROM :'csv_file'
-WITH (FORMAT csv, HEADER true, ENCODING 'UTF8', NULL '');
+\copy people_import_raw (name, position_title, location, birth_date) FROM :'csv_file' WITH (FORMAT csv, HEADER true, ENCODING 'UTF8', NULL '')
 
 CREATE TEMP TABLE people_import_validated AS
 WITH normalized AS (
