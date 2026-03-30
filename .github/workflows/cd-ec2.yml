@@ -170,6 +170,7 @@ jobs:
             PROJECT_NAME="${EC2_DOCKER_PROJECT_NAME:-youwo-homework}"
             WEB_PORT="${EC2_WEB_LOCAL_PORT:-18180}"
             API_PORT="${EC2_API_LOCAL_PORT:-18181}"
+            DB_URL="${SPRING_DATASOURCE_URL}"
 
             for key in API_IMAGE CLIENT_IMAGE GHCR_USERNAME GHCR_PULL_TOKEN SPRING_DATASOURCE_URL SPRING_DATASOURCE_USERNAME SPRING_DATASOURCE_PASSWORD; do
               if [ -z "${!key:-}" ]; then
@@ -178,8 +179,12 @@ jobs:
               fi
             done
 
-            if [[ "${SPRING_DATASOURCE_URL}" != jdbc:postgresql://* ]]; then
-              echo "Invalid SPRING_DATASOURCE_URL: must start with jdbc:postgresql:// (current value is masked in Actions logs)." >&2
+            if [[ "${DB_URL}" == postgresql://* ]]; then
+              DB_URL="jdbc:${DB_URL}"
+            elif [[ "${DB_URL}" == postgres://* ]]; then
+              DB_URL="jdbc:postgresql://${DB_URL#postgres://}"
+            elif [[ "${DB_URL}" != jdbc:postgresql://* ]]; then
+              echo "Invalid SPRING_DATASOURCE_URL: expected jdbc:postgresql://..., postgresql://..., or postgres://... (value is masked in Actions logs)." >&2
               exit 1
             fi
 
@@ -201,7 +206,7 @@ jobs:
             CLIENT_IMAGE=${CLIENT_IMAGE}
             WEB_LOCAL_PORT=${WEB_PORT}
             API_LOCAL_PORT=${API_PORT}
-            SPRING_DATASOURCE_URL=${SPRING_DATASOURCE_URL}
+            SPRING_DATASOURCE_URL=${DB_URL}
             SPRING_DATASOURCE_USERNAME=${SPRING_DATASOURCE_USERNAME}
             SPRING_DATASOURCE_PASSWORD=${SPRING_DATASOURCE_PASSWORD}
             ENVFILE
@@ -211,7 +216,7 @@ jobs:
             docker run --rm \
               -v "${DEPLOY_PATH}/db/migration:/flyway/sql:ro" \
               flyway/flyway:10 \
-              -url="${SPRING_DATASOURCE_URL}" \
+              -url="${DB_URL}" \
               -user="${SPRING_DATASOURCE_USERNAME}" \
               -password="${SPRING_DATASOURCE_PASSWORD}" \
               -connectRetries=60 \
