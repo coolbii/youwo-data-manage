@@ -1,4 +1,4 @@
-name: Bulk Import People (Manual)
+name: Bulk Import People
 
 on:
   workflow_dispatch:
