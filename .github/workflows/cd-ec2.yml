@@ -160,7 +160,7 @@ jobs:
 
             echo "${GHCR_PULL_TOKEN}" | docker login ghcr.io -u "${GHCR_USERNAME}" --password-stdin
 
-            docker run --rm \
+            docker run --rm --platform linux/arm64 \
               -v "${DEPLOY_PATH}/db/migration:/flyway/sql:ro" \
               flyway/flyway:10-alpine \
               -url="${SPRING_DATASOURCE_URL}" \
