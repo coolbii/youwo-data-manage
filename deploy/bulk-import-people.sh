@@ -41,15 +41,14 @@ if [ -n "${SSLMODE}" ]; then
   PSQL_CONN="${PSQL_CONN} sslmode=${SSLMODE}"
 fi
 
+CONTAINER_CSV="/work/${CSV_PATH}"
+
 echo "[import] Running bulk import: ${CSV_FILE}"
 docker run --rm \
   -v "${IMPORT_ROOT}:/work:ro" \
   -e PGPASSWORD="${SPRING_DATASOURCE_PASSWORD}" \
   postgres:16-alpine \
-  psql "${PSQL_CONN}" \
-  -v ON_ERROR_STOP=1 \
-  -v "csv_file=/work/${CSV_PATH}" \
-  -f /work/db/import_people_batch.sql
+  sh -c "sed \"s|:'csv_file'|'${CONTAINER_CSV}'|\" /work/db/import_people_batch.sql | psql \"${PSQL_CONN}\" -v ON_ERROR_STOP=1"
 
 echo "[import] Done. Verifying row count..."
 docker run --rm \

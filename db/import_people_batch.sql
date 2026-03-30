@@ -1,12 +1,5 @@
 \set ON_ERROR_STOP on
 
-\if :{?csv_file}
-\else
-  \echo 'Missing required psql variable: csv_file'
-  \echo 'Example: psql ... -v csv_file=/tmp/people_import.csv -f db/import_people_batch.sql'
-  \quit 1
-\endif
-
 BEGIN;
 
 SELECT CASE WHEN TO_REGCLASS('public.people') IS NOT NULL THEN 'true' ELSE 'false' END AS people_table_exists
