@@ -5,8 +5,6 @@ DEPLOY_PATH="${EC2_DEPLOY_PATH:-/opt/youwo-homework/deploy}"
 PROJECT_NAME="${EC2_DOCKER_PROJECT_NAME:-youwo-homework}"
 WEB_PORT="${EC2_WEB_LOCAL_PORT:-18180}"
 API_PORT="${EC2_API_LOCAL_PORT:-18181}"
-DB_URL="${SPRING_DATASOURCE_URL}"
-
 echo "[deploy] Start deployment on $(hostname)"
 for key in API_IMAGE CLIENT_IMAGE GHCR_USERNAME GHCR_PULL_TOKEN \
            SPRING_DATASOURCE_URL SPRING_DATASOURCE_USERNAME SPRING_DATASOURCE_PASSWORD; do
@@ -15,31 +13,6 @@ for key in API_IMAGE CLIENT_IMAGE GHCR_USERNAME GHCR_PULL_TOKEN \
     exit 1
   fi
 done
-
-# Normalize DB URL scheme to jdbc:postgresql://
-echo "[deploy] Normalize datasource URL"
-DB_URL="$(printf '%s' "${DB_URL}" | tr -d '\r')"
-DB_URL="${DB_URL#\"}"
-DB_URL="${DB_URL%\"}"
-
-case "${DB_URL}" in
-  jdbc:postgresql://*)
-    ;;
-  postgresql://*)
-    DB_URL="jdbc:${DB_URL}"
-    ;;
-  postgres://*)
-    DB_URL="jdbc:postgresql://${DB_URL#postgres://}"
-    ;;
-  *://*)
-    echo "Invalid SPRING_DATASOURCE_URL scheme." >&2
-    exit 1
-    ;;
-  *)
-    DB_URL="jdbc:postgresql://${DB_URL}"
-    ;;
-esac
-echo "[deploy] Datasource URL normalized"
 
 if [ "${WEB_PORT}" = "80" ] || [ "${WEB_PORT}" = "443" ] || \
    [ "${API_PORT}" = "80" ] || [ "${API_PORT}" = "443" ]; then
@@ -61,7 +34,7 @@ API_IMAGE=${API_IMAGE}
 CLIENT_IMAGE=${CLIENT_IMAGE}
 WEB_LOCAL_PORT=${WEB_PORT}
 API_LOCAL_PORT=${API_PORT}
-SPRING_DATASOURCE_URL=${DB_URL}
+SPRING_DATASOURCE_URL=${SPRING_DATASOURCE_URL}
 SPRING_DATASOURCE_USERNAME=${SPRING_DATASOURCE_USERNAME}
 SPRING_DATASOURCE_PASSWORD=${SPRING_DATASOURCE_PASSWORD}
 ENVFILE
@@ -73,7 +46,7 @@ echo "[deploy] Run Flyway migration"
 docker run --rm \
   -v "${DEPLOY_PATH}/db/migration:/flyway/sql:ro" \
   flyway/flyway:10 \
-  -url="${DB_URL}" \
+  -url="${SPRING_DATASOURCE_URL}" \
   -user="${SPRING_DATASOURCE_USERNAME}" \
   -password="${SPRING_DATASOURCE_PASSWORD}" \
   -connectRetries=60 \
