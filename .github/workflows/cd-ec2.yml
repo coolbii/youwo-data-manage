@@ -179,40 +179,24 @@ jobs:
               fi
             done
 
-            # Normalize common secret formats:
-            # - trim whitespace/newlines
-            # - strip optional wrapping quotes
-            # - accept jdbc:postgresql://, postgresql://, postgres://
-            # - accept bare host[:port]/db[?query] by auto-prefixing jdbc:postgresql://
+            # Normalize: trim whitespace, strip wrapping quotes
             DB_URL="$(printf '%s' "${DB_URL}" | tr -d '\r' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
-            case "${DB_URL}" in
-              \"*\")
-                DB_URL="${DB_URL#\"}"
-                DB_URL="${DB_URL%\"}"
-                ;;
-              \'*\')
-                DB_URL="${DB_URL#\'}"
-                DB_URL="${DB_URL%\'}"
-                ;;
-            esac
+            DB_URL="${DB_URL#\"}" && DB_URL="${DB_URL%\"}"
+            DB_URL="${DB_URL#\'}" && DB_URL="${DB_URL%\'}"
 
-            case "${DB_URL}" in
-              jdbc:postgresql://*)
-                ;;
-              postgresql://*)
-                DB_URL="jdbc:${DB_URL}"
-                ;;
-              postgres://*)
-                DB_URL="jdbc:postgresql://${DB_URL#postgres://}"
-                ;;
-              *://*)
-                echo "Invalid SPRING_DATASOURCE_URL scheme. Allowed: jdbc:postgresql://, postgresql://, postgres:// (value is masked in Actions logs)." >&2
-                exit 1
-                ;;
-              *)
-                DB_URL="jdbc:postgresql://${DB_URL}"
-                ;;
-            esac
+            # Normalize DB URL scheme to jdbc:postgresql://
+            if echo "${DB_URL}" | grep -q '^jdbc:postgresql://'; then
+              :
+            elif echo "${DB_URL}" | grep -q '^postgresql://'; then
+              DB_URL="jdbc:${DB_URL}"
+            elif echo "${DB_URL}" | grep -q '^postgres://'; then
+              DB_URL="jdbc:postgresql://${DB_URL#postgres://}"
+            elif echo "${DB_URL}" | grep -q '://'; then
+              echo "Invalid SPRING_DATASOURCE_URL scheme." >&2
+              exit 1
+            else
+              DB_URL="jdbc:postgresql://${DB_URL}"
+            fi
 
             if [ "${WEB_PORT}" = "80" ] || [ "${WEB_PORT}" = "443" ] || [ "${API_PORT}" = "80" ] || [ "${API_PORT}" = "443" ]; then
               echo "Refuse to deploy: local ports cannot use 80/443 on shared EC2." >&2
