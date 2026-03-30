@@ -51,9 +51,20 @@ docker compose \
   --env-file .env \
   up -d --remove-orphans
 
-echo "[deploy] Run health checks"
+echo "[deploy] Run health checks (wait up to 60s)"
+for i in $(seq 1 12); do
+  if curl -fsS "http://127.0.0.1:${API_PORT}/api/health" >/dev/null 2>&1; then
+    break
+  fi
+  if [ "$i" = "12" ]; then
+    echo "API health check failed after 60s" >&2
+    docker logs "$(docker compose --project-name "${PROJECT_NAME}" ps -q api)" --tail 50 2>&1 || true
+    exit 1
+  fi
+  echo "  waiting... (${i}/12)"
+  sleep 5
+done
 curl -fsS -I "http://127.0.0.1:${WEB_PORT}" >/dev/null
-curl -fsS "http://127.0.0.1:${API_PORT}/api/health" >/dev/null
 
 echo "[deploy] Deployment complete"
 docker ps --format 'table {{.Names}}\t{{.Ports}}'
