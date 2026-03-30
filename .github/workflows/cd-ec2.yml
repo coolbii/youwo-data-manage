@@ -165,12 +165,21 @@ jobs:
           script_stop: true
           script: |
             set -euo pipefail
+            trap 'echo "[deploy] ERROR at line ${LINENO}" >&2' ERR
 
             DEPLOY_PATH="${EC2_DEPLOY_PATH:-/opt/youwo-homework/deploy}"
             PROJECT_NAME="${EC2_DOCKER_PROJECT_NAME:-youwo-homework}"
             WEB_PORT="${EC2_WEB_LOCAL_PORT:-18180}"
             API_PORT="${EC2_API_LOCAL_PORT:-18181}"
             DB_URL="${SPRING_DATASOURCE_URL}"
+
+            echo "[deploy] Start deployment on $(hostname)"
+            for key in API_IMAGE CLIENT_IMAGE GHCR_USERNAME GHCR_PULL_TOKEN SPRING_DATASOURCE_URL SPRING_DATASOURCE_USERNAME SPRING_DATASOURCE_PASSWORD; do
+              if [ -z "${!key:-}" ]; then
+                echo "Required env is empty: ${key}" >&2
+                exit 1
+              fi
+            done
 
             # Normalize: trim whitespace, strip wrapping quotes
             DB_URL="$(printf '%s' "${DB_URL}" | tr -d '\r' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
@@ -196,6 +205,7 @@ jobs:
               exit 1
             fi
 
+            echo "[deploy] Prepare directory: ${DEPLOY_PATH}"
             mkdir -p "${DEPLOY_PATH}"
             cd "${DEPLOY_PATH}"
 
@@ -214,8 +224,10 @@ jobs:
             SPRING_DATASOURCE_PASSWORD=${SPRING_DATASOURCE_PASSWORD}
             ENVFILE
 
+            echo "[deploy] Login ghcr.io as ${GHCR_USERNAME}"
             echo "${GHCR_PULL_TOKEN}" | docker login ghcr.io -u "${GHCR_USERNAME}" --password-stdin
 
+            echo "[deploy] Run Flyway migration"
             docker run --rm \
               -v "${DEPLOY_PATH}/db/migration:/flyway/sql:ro" \
               flyway/flyway:10 \
@@ -225,19 +237,23 @@ jobs:
               -connectRetries=60 \
               migrate
 
+            echo "[deploy] Pull compose images"
             docker compose \
               --project-name "${PROJECT_NAME}" \
               -f docker-compose.ec2.yml \
               --env-file .env \
               pull
 
+            echo "[deploy] Start compose services"
             docker compose \
               --project-name "${PROJECT_NAME}" \
               -f docker-compose.ec2.yml \
               --env-file .env \
               up -d --remove-orphans
 
+            echo "[deploy] Run health checks"
             curl -fsS -I "http://127.0.0.1:${WEB_PORT}" >/dev/null
             curl -fsS "http://127.0.0.1:${API_PORT}/api/health" >/dev/null
 
+            echo "[deploy] Deployment complete"
             docker ps --format 'table {{.Names}}\t{{.Ports}}'
