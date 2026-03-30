@@ -1,0 +1,68 @@
+name: Bulk Import People
+
+on:
+  workflow_dispatch:
+    inputs:
+      csv_path:
+        description: CSV path in repository (example: db/people_import_template.csv)
+        required: true
+        default: db/people_import_template.csv
+      ec2_import_dir:
+        description: EC2 temp import directory
+        required: true
+        default: /opt/youwo-homework/import
+
+jobs:
+  import-people:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate CSV and SQL files
+        env:
+          CSV_PATH: ${{ github.event.inputs.csv_path }}
+        run: |
+          set -euo pipefail
+          test -f "${CSV_PATH}" || { echo "CSV file not found: ${CSV_PATH}" >&2; exit 1; }
+          test -f db/import_people_batch.sql || { echo "Missing db/import_people_batch.sql" >&2; exit 1; }
+
+      - name: Prepare import directory on EC2
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          EC2_IMPORT_DIR: ${{ github.event.inputs.ec2_import_dir }}
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+          envs: EC2_IMPORT_DIR
+          script_stop: true
+          script: mkdir -p "${EC2_IMPORT_DIR:-/opt/youwo-homework/import}"
+
+      - name: Upload import files to EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+          source: db/import_people_batch.sql,${{ github.event.inputs.csv_path }},deploy/bulk-import-people.sh
+          target: ${{ github.event.inputs.ec2_import_dir }}
+
+      - name: Run people bulk import on EC2
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          EC2_IMPORT_DIR: ${{ github.event.inputs.ec2_import_dir }}
+          CSV_PATH: ${{ github.event.inputs.csv_path }}
+          SPRING_DATASOURCE_URL: ${{ secrets.PROD_SPRING_DATASOURCE_URL }}
+          SPRING_DATASOURCE_USERNAME: ${{ secrets.PROD_SPRING_DATASOURCE_USERNAME }}
+          SPRING_DATASOURCE_PASSWORD: ${{ secrets.PROD_SPRING_DATASOURCE_PASSWORD }}
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+          envs: EC2_IMPORT_DIR,CSV_PATH,SPRING_DATASOURCE_URL,SPRING_DATASOURCE_USERNAME,SPRING_DATASOURCE_PASSWORD
+          script_stop: true
+          script: bash "${EC2_IMPORT_DIR:-/opt/youwo-homework/import}/deploy/bulk-import-people.sh"
