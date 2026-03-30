@@ -133,16 +133,6 @@ jobs:
           target: ${{ secrets.EC2_DEPLOY_PATH }}
           strip_components: 1
 
-      - name: Upload Flyway SQL migrations
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
-          source: api-java/src/main/resources/db/migration
-          target: ${{ secrets.EC2_DEPLOY_PATH }}/db
-          strip_components: 5
-
       - name: Deploy on EC2 (shared instance-safe)
         uses: appleboy/ssh-action@v1.0.3
         env:

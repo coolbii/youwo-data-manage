@@ -24,11 +24,6 @@ echo "[deploy] Prepare directory: ${DEPLOY_PATH}"
 mkdir -p "${DEPLOY_PATH}"
 cd "${DEPLOY_PATH}"
 
-if [ ! -d "${DEPLOY_PATH}/db/migration" ]; then
-  echo "Migration directory not found: ${DEPLOY_PATH}/db/migration" >&2
-  exit 1
-fi
-
 cat > .env <<ENVFILE
 API_IMAGE=${API_IMAGE}
 CLIENT_IMAGE=${CLIENT_IMAGE}
@@ -41,16 +36,6 @@ ENVFILE
 
 echo "[deploy] Login ghcr.io as ${GHCR_USERNAME}"
 echo "${GHCR_PULL_TOKEN}" | docker login ghcr.io -u "${GHCR_USERNAME}" --password-stdin
-
-echo "[deploy] Run Flyway migration"
-docker run --rm \
-  -v "${DEPLOY_PATH}/db/migration:/flyway/sql:ro" \
-  redgate/flyway:10 \
-  -url="${SPRING_DATASOURCE_URL}" \
-  -user="${SPRING_DATASOURCE_USERNAME}" \
-  -password="${SPRING_DATASOURCE_PASSWORD}" \
-  -connectRetries=60 \
-  migrate
 
 echo "[deploy] Pull compose images"
 docker compose \
