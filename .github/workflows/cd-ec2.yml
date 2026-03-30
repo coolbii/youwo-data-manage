@@ -181,25 +181,34 @@ jobs:
             [ -n "${SPRING_DATASOURCE_USERNAME:-}" ] || { echo "Required env is empty: SPRING_DATASOURCE_USERNAME" >&2; exit 1; }
             [ -n "${SPRING_DATASOURCE_PASSWORD:-}" ] || { echo "Required env is empty: SPRING_DATASOURCE_PASSWORD" >&2; exit 1; }
 
-            # Normalize: trim whitespace, strip wrapping quotes
-            echo "[deploy] Normalize datasource URL"
-            DB_URL="$(printf '%s' "${DB_URL}" | tr -d '\r' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
-            DB_URL="${DB_URL#\"}" && DB_URL="${DB_URL%\"}"
-            DB_URL="${DB_URL#\'}" && DB_URL="${DB_URL%\'}"
-
             # Normalize DB URL scheme to jdbc:postgresql://
-            if echo "${DB_URL}" | grep -q '^jdbc:postgresql://'; then
-              :
-            elif echo "${DB_URL}" | grep -q '^postgresql://'; then
-              DB_URL="jdbc:${DB_URL}"
-            elif echo "${DB_URL}" | grep -q '^postgres://'; then
-              DB_URL="jdbc:postgresql://${DB_URL#postgres://}"
-            elif echo "${DB_URL}" | grep -q '://'; then
-              echo "Invalid SPRING_DATASOURCE_URL scheme." >&2
-              exit 1
-            else
-              DB_URL="jdbc:postgresql://${DB_URL}"
-            fi
+            # Keep this parser simple/shell-safe for appleboy ssh-action execution.
+            echo "[deploy] Normalize datasource URL"
+            DB_URL="$(printf '%s' "${DB_URL}" | tr -d '\r')"
+            case "${DB_URL}" in
+              \"*\")
+                DB_URL="${DB_URL#\"}"
+                DB_URL="${DB_URL%\"}"
+                ;;
+            esac
+
+            case "${DB_URL}" in
+              jdbc:postgresql://*)
+                ;;
+              postgresql://*)
+                DB_URL="jdbc:${DB_URL}"
+                ;;
+              postgres://*)
+                DB_URL="jdbc:postgresql://${DB_URL#postgres://}"
+                ;;
+              *://*)
+                echo "Invalid SPRING_DATASOURCE_URL scheme." >&2
+                exit 1
+                ;;
+              *)
+                DB_URL="jdbc:postgresql://${DB_URL}"
+                ;;
+            esac
             echo "[deploy] Datasource URL normalized"
 
             if [ "${WEB_PORT}" = "80" ] || [ "${WEB_PORT}" = "443" ] || [ "${API_PORT}" = "80" ] || [ "${API_PORT}" = "443" ]; then
