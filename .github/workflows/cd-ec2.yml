@@ -185,24 +185,34 @@ jobs:
             # - accept jdbc:postgresql://, postgresql://, postgres://
             # - accept bare host[:port]/db[?query] by auto-prefixing jdbc:postgresql://
             DB_URL="$(printf '%s' "${DB_URL}" | tr -d '\r' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
-            if [[ "${DB_URL}" == \"*\" ]]; then
-              DB_URL="${DB_URL:1:${#DB_URL}-2}"
-            elif [[ "${DB_URL}" == \'*\' ]]; then
-              DB_URL="${DB_URL:1:${#DB_URL}-2}"
-            fi
+            case "${DB_URL}" in
+              \"*\")
+                DB_URL="${DB_URL#\"}"
+                DB_URL="${DB_URL%\"}"
+                ;;
+              \'*\')
+                DB_URL="${DB_URL#\'}"
+                DB_URL="${DB_URL%\'}"
+                ;;
+            esac
 
-            if [[ "${DB_URL}" == jdbc:postgresql://* ]]; then
-              :
-            elif [[ "${DB_URL}" == postgresql://* ]]; then
-              DB_URL="jdbc:${DB_URL}"
-            elif [[ "${DB_URL}" == postgres://* ]]; then
-              DB_URL="jdbc:postgresql://${DB_URL#postgres://}"
-            elif [[ "${DB_URL}" == *://* ]]; then
-              echo "Invalid SPRING_DATASOURCE_URL scheme. Allowed: jdbc:postgresql://, postgresql://, postgres:// (value is masked in Actions logs)." >&2
-              exit 1
-            else
-              DB_URL="jdbc:postgresql://${DB_URL}"
-            fi
+            case "${DB_URL}" in
+              jdbc:postgresql://*)
+                ;;
+              postgresql://*)
+                DB_URL="jdbc:${DB_URL}"
+                ;;
+              postgres://*)
+                DB_URL="jdbc:postgresql://${DB_URL#postgres://}"
+                ;;
+              *://*)
+                echo "Invalid SPRING_DATASOURCE_URL scheme. Allowed: jdbc:postgresql://, postgresql://, postgres:// (value is masked in Actions logs)." >&2
+                exit 1
+                ;;
+              *)
+                DB_URL="jdbc:postgresql://${DB_URL}"
+                ;;
+            esac
 
             if [ "${WEB_PORT}" = "80" ] || [ "${WEB_PORT}" = "443" ] || [ "${API_PORT}" = "80" ] || [ "${API_PORT}" = "443" ]; then
               echo "Refuse to deploy: local ports cannot use 80/443 on shared EC2." >&2
