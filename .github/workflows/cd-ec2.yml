@@ -165,7 +165,6 @@ jobs:
           script_stop: true
           script: |
             set -euo pipefail
-            trap 'echo "[deploy] ERROR at line ${LINENO}" >&2' ERR
 
             DEPLOY_PATH="${EC2_DEPLOY_PATH:-/opt/youwo-homework/deploy}"
             PROJECT_NAME="${EC2_DOCKER_PROJECT_NAME:-youwo-homework}"
@@ -174,14 +173,16 @@ jobs:
             DB_URL="${SPRING_DATASOURCE_URL}"
 
             echo "[deploy] Start deployment on $(hostname)"
-            for key in API_IMAGE CLIENT_IMAGE GHCR_USERNAME GHCR_PULL_TOKEN SPRING_DATASOURCE_URL SPRING_DATASOURCE_USERNAME SPRING_DATASOURCE_PASSWORD; do
-              if [ -z "${!key:-}" ]; then
-                echo "Required env is empty: ${key}" >&2
-                exit 1
-              fi
-            done
+            [ -n "${API_IMAGE:-}" ] || { echo "Required env is empty: API_IMAGE" >&2; exit 1; }
+            [ -n "${CLIENT_IMAGE:-}" ] || { echo "Required env is empty: CLIENT_IMAGE" >&2; exit 1; }
+            [ -n "${GHCR_USERNAME:-}" ] || { echo "Required env is empty: GHCR_USERNAME" >&2; exit 1; }
+            [ -n "${GHCR_PULL_TOKEN:-}" ] || { echo "Required env is empty: GHCR_PULL_TOKEN" >&2; exit 1; }
+            [ -n "${SPRING_DATASOURCE_URL:-}" ] || { echo "Required env is empty: SPRING_DATASOURCE_URL" >&2; exit 1; }
+            [ -n "${SPRING_DATASOURCE_USERNAME:-}" ] || { echo "Required env is empty: SPRING_DATASOURCE_USERNAME" >&2; exit 1; }
+            [ -n "${SPRING_DATASOURCE_PASSWORD:-}" ] || { echo "Required env is empty: SPRING_DATASOURCE_PASSWORD" >&2; exit 1; }
 
             # Normalize: trim whitespace, strip wrapping quotes
+            echo "[deploy] Normalize datasource URL"
             DB_URL="$(printf '%s' "${DB_URL}" | tr -d '\r' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
             DB_URL="${DB_URL#\"}" && DB_URL="${DB_URL%\"}"
             DB_URL="${DB_URL#\'}" && DB_URL="${DB_URL%\'}"
@@ -199,6 +200,7 @@ jobs:
             else
               DB_URL="jdbc:postgresql://${DB_URL}"
             fi
+            echo "[deploy] Datasource URL normalized"
 
             if [ "${WEB_PORT}" = "80" ] || [ "${WEB_PORT}" = "443" ] || [ "${API_PORT}" = "80" ] || [ "${API_PORT}" = "443" ]; then
               echo "Refuse to deploy: local ports cannot use 80/443 on shared EC2." >&2
