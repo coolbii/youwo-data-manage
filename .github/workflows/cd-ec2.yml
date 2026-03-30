@@ -49,7 +49,7 @@ jobs:
           context: .
           file: Dockerfile.api
           push: true
-          platforms: linux/amd64
+          platforms: linux/amd64,linux/arm64
           tags: |
             ${{ steps.image-vars.outputs.api_image }}
             ${{ steps.image-vars.outputs.api_image_latest }}
@@ -60,7 +60,7 @@ jobs:
           context: .
           file: Dockerfile.client
           push: true
-          platforms: linux/amd64
+          platforms: linux/amd64,linux/arm64
           tags: |
             ${{ steps.image-vars.outputs.client_image }}
             ${{ steps.image-vars.outputs.client_image_latest }}
@@ -68,12 +68,48 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     needs: build-and-push
+    environment: production
     permissions:
       contents: read
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Validate required deploy secrets
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }}
+          EC2_SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+          EC2_DEPLOY_PATH: ${{ secrets.EC2_DEPLOY_PATH }}
+          EC2_DOCKER_PROJECT_NAME: ${{ secrets.EC2_DOCKER_PROJECT_NAME }}
+          EC2_WEB_LOCAL_PORT: ${{ secrets.EC2_WEB_LOCAL_PORT }}
+          EC2_API_LOCAL_PORT: ${{ secrets.EC2_API_LOCAL_PORT }}
+          PROD_SPRING_DATASOURCE_URL: ${{ secrets.PROD_SPRING_DATASOURCE_URL }}
+          PROD_SPRING_DATASOURCE_USERNAME: ${{ secrets.PROD_SPRING_DATASOURCE_USERNAME }}
+          PROD_SPRING_DATASOURCE_PASSWORD: ${{ secrets.PROD_SPRING_DATASOURCE_PASSWORD }}
+          GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
+          GHCR_PULL_TOKEN: ${{ secrets.GHCR_PULL_TOKEN }}
+        run: |
+          set -euo pipefail
+          for key in \
+            EC2_HOST \
+            EC2_USER \
+            EC2_SSH_PRIVATE_KEY \
+            EC2_DEPLOY_PATH \
+            EC2_DOCKER_PROJECT_NAME \
+            EC2_WEB_LOCAL_PORT \
+            EC2_API_LOCAL_PORT \
+            PROD_SPRING_DATASOURCE_URL \
+            PROD_SPRING_DATASOURCE_USERNAME \
+            PROD_SPRING_DATASOURCE_PASSWORD \
+            GHCR_USERNAME \
+            GHCR_PULL_TOKEN; do
+            if [[ -z "${!key:-}" ]]; then
+              echo "::error::Missing required secret in repository/environment: ${key}"
+              exit 1
+            fi
+          done
 
       - name: Prepare deploy directory on EC2
         uses: appleboy/ssh-action@v1.0.3
@@ -134,6 +170,18 @@ jobs:
             PROJECT_NAME="${EC2_DOCKER_PROJECT_NAME:-youwo-homework}"
             WEB_PORT="${EC2_WEB_LOCAL_PORT:-18180}"
             API_PORT="${EC2_API_LOCAL_PORT:-18181}"
+
+            for key in API_IMAGE CLIENT_IMAGE GHCR_USERNAME GHCR_PULL_TOKEN SPRING_DATASOURCE_URL SPRING_DATASOURCE_USERNAME SPRING_DATASOURCE_PASSWORD; do
+              if [ -z "${!key:-}" ]; then
+                echo "Required env is empty: ${key}" >&2
+                exit 1
+              fi
+            done
+
+            if [[ "${SPRING_DATASOURCE_URL}" != jdbc:postgresql://* ]]; then
+              echo "Invalid SPRING_DATASOURCE_URL: must start with jdbc:postgresql:// (current value is masked in Actions logs)." >&2
+              exit 1
+            fi
 
             if [ "${WEB_PORT}" = "80" ] || [ "${WEB_PORT}" = "443" ] || [ "${API_PORT}" = "80" ] || [ "${API_PORT}" = "443" ]; then
               echo "Refuse to deploy: local ports cannot use 80/443 on shared EC2." >&2
