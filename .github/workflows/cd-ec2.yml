@@ -162,7 +162,7 @@ jobs:
 
             docker run --rm \
               -v "${DEPLOY_PATH}/db/migration:/flyway/sql:ro" \
-              redgate/flyway:10-alpine \
+              flyway/flyway:10 \
               -url="${SPRING_DATASOURCE_URL}" \
               -user="${SPRING_DATASOURCE_USERNAME}" \
               -password="${SPRING_DATASOURCE_PASSWORD}" \
